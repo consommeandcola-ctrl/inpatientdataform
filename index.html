@@ -1012,7 +1012,7 @@ const NORMALS = {
 
 const LABS = {
   cbc: { name: '血算', items: [['WBC', '/μL'], ['RBC', '×10^6'], ['Hb', 'g/dL'], ['Ht', '%'], ['Plt', '×10^4'], ['MCV', 'fL'], ['MCH', 'pg'], ['MCHC', '%']] },
-  chem: { name: '生化学', items: [['Na', 'mEq/L'], ['K', 'mEq/L'], ['Cl', 'mEq/L'], ['BUN', 'mg/dL'], ['Cr', 'mg/dL'], ['eGFR', 'mL/min'], ['AST', 'U/L'], ['ALT', 'U/L'], ['ALP', 'U/L'], ['γ-GTP', 'U/L'], ['T-bil', 'mg/dL'], ['D-bil', 'mg/dL'], ['TP', 'g/dL'], ['Alb', 'g/dL'], ['Glu', 'mg/dL'], ['CRP', 'mg/dL'], ['LDH', 'U/L'], ['CK', 'U/L'], ['Amy', 'U/L'], ['Lip', 'U/L'], ['UA', 'mg/dL'], ['Ca', 'mg/dL'], ['IP', 'mg/dL'], ['Mg', 'mg/dL'], ['Fe', 'μg/dL'], ['TIBC', 'μg/dL'], ['Ferritin', 'ng/mL']] },
+  chem: { name: '生化学', items: [['CRP', 'mg/dL'], ['TP', 'g/dL'], ['Alb', 'g/dL'], ['AST', 'U/L'], ['ALT', 'U/L'], ['ALP', 'U/L'], ['γ-GTP', 'U/L'], ['T-bil', 'mg/dL'], ['D-bil', 'mg/dL'], ['LDH', 'U/L'], ['BUN', 'mg/dL'], ['Cr', 'mg/dL'], ['eGFR', 'mL/min'], ['Na', 'mEq/L'], ['K', 'mEq/L'], ['Cl', 'mEq/L'], ['Glu', 'mg/dL'], ['CK', 'U/L'], ['Amy', 'U/L'], ['Lip', 'U/L'], ['UA', 'mg/dL'], ['Ca', 'mg/dL'], ['IP', 'mg/dL'], ['Mg', 'mg/dL'], ['Fe', 'μg/dL'], ['TIBC', 'μg/dL'], ['Ferritin', 'ng/mL']] },
   coag: { name: '凝固', items: [['PT-INR', ''], ['PT%', '%'], ['APTT', 'sec'], ['D-dimer', 'μg/mL'], ['FDP', 'μg/mL'], ['Fib', 'mg/dL'], ['AT3', '%']] },
   sugar: { name: '血糖・心不全', items: [['HbA1c', '%'], ['BNP', 'pg/mL'], ['NT-proBNP', 'pg/mL']] },
   gas: { name: '血液ガス', items: [['pH', ''], ['pCO2', 'mmHg'], ['pO2', 'mmHg'], ['HCO3-', 'mmol/L'], ['BE', 'mEq/L'], ['Lac', 'mmol/L'], ['SaO2', '%']] },
@@ -1838,29 +1838,113 @@ function initGeminiAPI() {
   // Gemini API 呼び出し
   async function callGeminiAPI(apiKey, imageBase64) {
     const LABEL_MAP = {
-      'γGTP': 'γ-GTP', 'γ-GTP': 'γ-GTP', 'Tbil': 'T-bil', 'T-Bil': 'T-bil',
-      'Dbil': 'D-bil', 'D-Bil': 'D-bil', 'LD': 'LDH', 'GLU': 'Glu', 'AMY': 'Amy',
-      'LIPA': 'Lip', 'Crn': 'Cr', '白血球': 'WBC', '赤血球': 'RBC',
-      '血色素': 'Hb', 'ヘモグロビン': 'Hb', 'ヘマトクリット': 'Ht', '血小板': 'Plt',
-      'Dダイマー': 'D-dimer', '比重': '比重', '潜血': '潜血', '蛋白': '蛋白'
+      // 血算
+      '白血球': 'WBC', '白血球数': 'WBC', 'WBC': 'WBC',
+      '赤血球': 'RBC', '赤血球数': 'RBC', 'RBC': 'RBC',
+      '血色素': 'Hb', 'ヘモグロビン': 'Hb', 'Hb': 'Hb', 'HB': 'Hb',
+      'ヘマトクリット': 'Ht', 'Ht': 'Ht', 'HT': 'Ht', 'Hct': 'Ht',
+      '血小板': 'Plt', '血小板数': 'Plt', 'Plt': 'Plt', 'PLT': 'Plt',
+      
+      // 生化学
+      'ナトリウム': 'Na', 'Na': 'Na', 'NA': 'Na',
+      'カリウム': 'K', 'K': 'K',
+      'クロール': 'Cl', 'Cl': 'Cl', 'CL': 'Cl',
+      '尿素窒素': 'BUN', 'BUN': 'BUN',
+      'クレアチニン': 'Cr', 'Cr': 'Cr', 'CR': 'Cr', 'Crn': 'Cr', 'CRE': 'Cr',
+      '総蛋白': 'TP', '総タンパク': 'TP', 'TP': 'TP',
+      'アルブミン': 'Alb', 'Alb': 'Alb', 'ALB': 'Alb',
+      '総ビリルビン': 'T-bil', 'T-bil': 'T-bil', 'Tbil': 'T-bil', 'T-Bil': 'T-bil', 'TB': 'T-bil',
+      '直接ビリルビン': 'D-bil', 'D-bil': 'D-bil', 'Dbil': 'D-bil', 'D-Bil': 'D-bil', 'DB': 'D-bil',
+      'AST': 'AST', 'GOT': 'AST', 'AST(GOT)': 'AST',
+      'ALT': 'ALT', 'GPT': 'ALT', 'ALT(GPT)': 'ALT',
+      'ALP': 'ALP',
+      'γGTP': 'γ-GTP', 'γ-GTP': 'γ-GTP', 'GGT': 'γ-GTP', 'yGTP': 'γ-GTP', 'Y-GTP': 'γ-GTP',
+      'LDH': 'LDH', 'LD': 'LDH',
+      'CK': 'CK', 'CPK': 'CK',
+      'アミラーゼ': 'Amy', 'AMY': 'Amy', 'Amy': 'Amy',
+      'リパーゼ': 'Lip', 'LIPA': 'Lip', 'Lip': 'Lip',
+      '血糖': 'Glu', 'グルコース': 'Glu', 'Glu': 'Glu', 'GLU': 'Glu', 'BS': 'Glu',
+      'HbA1c': 'HbA1c', 'ヘモグロビンA1c': 'HbA1c',
+      
+      // 凝固
+      'PT': 'PT', 'PT-INR': 'PT-INR', 'INR': 'PT-INR',
+      'APTT': 'APTT', 'aPTT': 'APTT',
+      'フィブリノゲン': 'Fib', 'Fib': 'Fib',
+      'Dダイマー': 'D-dimer', 'D-dimer': 'D-dimer', 'DD': 'D-dimer',
+      
+      // 血液ガス
+      'pH': 'pH',
+      'PaCO2': 'PaCO2', 'pCO2': 'PaCO2',
+      'PaO2': 'PaO2', 'pO2': 'PaO2',
+      'HCO3': 'HCO3-', 'HCO3-': 'HCO3-',
+      'BE': 'BE',
+      'Lac': 'Lac', '乳酸': 'Lac',
+      
+      // 尿定性（尿検査の項目は明確に区別）
+      '比重': '比重',
+      '潜血': '潜血', '尿潜血': '潜血',
+      '蛋白': '蛋白', '尿蛋白': '蛋白',
+      '糖': '糖', '尿糖': '糖',
+      'pH': 'pH',
+      'ケトン体': 'ケトン体',
+      'ウロビリノーゲン': 'ウロビリノーゲン',
+      'ビリルビン': 'ビリルビン'
     };
     
     const normalizeLabel = (k) => LABEL_MAP[String(k || '').replace(/\s+/g, '')] || String(k || '').trim();
     
-    const prompt = `医療検査票の読み取り。次の厳格ルールで、JSON形式で出力:
-- 対象はラボ項目のみ（バイタルは除外）
-- ラベルは一般略号優先（例: 白血球→WBC, 血色素→Hb, クレアチニン→Cr）
-- 値は数値のみ。<, >, ≦, 以上/未満 等は除去。読めない/推定不可はスキップ
-- 単位は読めたときだけ入れる（mg/dL, IU/L, g/dL, % など）
-- 同一項目が複数印字なら最新行らしいものを採用
+    const prompt = `医療検査票の画像から検査値を抽出してください。
 
-出力形式（この形式に厳密に従うこと）:
+【重要】画像全体を見て、各検査項目がどのセクション（血液検査、尿検査など）に記載されているかを判断してください。
+
+【検査の種類と項目】
+
+■ 血液検査（血算）※最重要
+- WBC（白血球数）、RBC（赤血球数）、Hb（ヘモグロビン）、Ht（ヘマトクリット）、Plt（血小板）
+- 単位：/μL、×10⁴/μL、g/dL、% など
+
+■ 血液検査（生化学）
+- 電解質：Na、K、Cl
+- 腎機能：BUN、Cr、eGFR
+- 肝機能：AST、ALT、ALP、γ-GTP、T-bil、D-bil、TP、Alb、LDH
+- その他：CK、Amy、Lip、Glu、CRP、UA など
+- 単位：mEq/L、mg/dL、U/L、IU/L など
+
+■ 血液検査（凝固）
+- PT-INR、APTT、D-dimer、Fib など
+
+■ 尿検査（尿定性）
+- pH、比重、蛋白、糖、潜血、ケトン体 など
+- ※重要：尿検査セクションに「WBC」「RBC」が書いてある場合は、「尿中白血球」「尿中赤血球」として区別してください
+
+■ 尿検査（尿沈渣）
+- 「尿沈渣」または「尿中」のセクションに記載
+- RBC、WBC、上皮、円柱、細菌 など
+- 単位：/HPF（高倍率視野あたり）
+
+【抽出ルール】
+1. 項目名は英語略号を使用（WBC、RBC、Na、Cr など）
+2. 血液検査のWBC/RBCと尿検査のWBC/RBCは異なる検査です
+   - 血液検査のセクションにある → 「WBC」「RBC」
+   - 尿検査のセクションにある → この項目はスキップ（または「尿中WBC」「尿中RBC」と明記）
+3. 数値のみ抽出（記号は除去）
+4. 単位を正確に記載
+5. 判読不能な値はスキップ
+
+【出力JSON形式】
 {
   "items": [
     {"key": "WBC", "value": 7500, "unit": "/μL"},
-    {"key": "Hb", "value": 13.5, "unit": "g/dL"}
+    {"key": "RBC", "value": 450, "unit": "×10⁴/μL"},
+    {"key": "Hb", "value": 13.5, "unit": "g/dL"},
+    {"key": "Na", "value": 140, "unit": "mEq/L"},
+    {"key": "Cr", "value": 0.8, "unit": "mg/dL"}
   ]
-}`;
+}
+
+※バイタルサイン（血圧、体温、脈拍）、患者情報、検査日時は除外してください。`;
+
+
     
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${apiKey}`;
     console.log('API URL:', url.replace(apiKey, 'API_KEY_HIDDEN'));
@@ -2187,7 +2271,8 @@ function renderOcrResults() {
 }
 
 function applyLabData(labData) {
-  console.log('applyLabData called with:', labData);
+  console.log('=== applyLabData called ===');
+  console.log('Input data:', labData);
   
   // 項目名からカテゴリを判定するマッピング
   const itemToCat = {};
@@ -2202,19 +2287,18 @@ function applyLabData(labData) {
     });
   });
   
-  console.log('itemToCat sample:', { 
-    WBC: itemToCat['WBC'], 
-    Hb: itemToCat['Hb'], 
-    Na: itemToCat['Na'] 
-  });
+  console.log('Sample mappings:');
+  console.log('  WBC →', itemToCat['WBC']);
+  console.log('  RBC →', itemToCat['RBC']);
+  console.log('  Na →', itemToCat['Na']);
+  console.log('  Hb →', itemToCat['Hb']);
   
   let addedCount = 0;
+  const results = [];
   
   Object.entries(labData).forEach(([key, valueData]) => {
     // 項目名の正規化
     let normalizedKey = key.trim();
-    
-    console.log(`Processing: ${normalizedKey}`, valueData);
     
     // valueDataがオブジェクトの場合は value プロパティを取り出す
     let actualValue = valueData;
@@ -2222,13 +2306,12 @@ function applyLabData(labData) {
       actualValue = valueData.value;
     }
     
-    console.log(`  Normalized key: ${normalizedKey}, Actual value: ${actualValue}`);
-    
     const mapping = itemToCat[normalizedKey];
-    console.log(`  Mapping found:`, mapping);
     
     if (mapping) {
       const { cat, unit } = mapping;
+      
+      console.log(`✓ ${normalizedKey} = ${actualValue} → カテゴリ: ${LABS[cat].name} (${cat})`);
       
       // 既存の項目を探す
       let existing = state.labs[cat].find(x => x.item === normalizedKey || 
@@ -2245,19 +2328,23 @@ function applyLabData(labData) {
       if (normalizedKey === 'HCO3') itemName = 'HCO3-';
       
       if (existing) {
-        console.log(`  Updating existing item: ${itemName} = ${actualValue}`);
+        console.log(`  → 既存項目を更新`);
         existing.val = String(actualValue);
       } else {
-        console.log(`  Adding new item: ${itemName} = ${actualValue} (${unit})`);
+        console.log(`  → 新規項目を追加`);
         state.labs[cat].push({ item: itemName, unit, val: String(actualValue) });
       }
+      
+      results.push({ key: normalizedKey, category: LABS[cat].name, value: actualValue });
       addedCount++;
     } else {
-      console.log(`  No mapping found for: ${normalizedKey}`);
+      console.log(`✗ ${normalizedKey} = ${actualValue} → マッピングが見つかりません`);
     }
   });
   
-  console.log(`Total added: ${addedCount}`);
+  console.log('=== 反映結果 ===');
+  results.forEach(r => console.log(`  ${r.key} (${r.category}): ${r.value}`));
+  console.log(`合計 ${addedCount} 項目を反映しました`);
   
   if (addedCount > 0) {
     save();
