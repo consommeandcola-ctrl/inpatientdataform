@@ -1007,7 +1007,7 @@ const NORMALS = {
   tumor: { CEA: '', CA19_9: '', AFP: '', PSA: '', CA125: '', CA15_3: '', SCC: '', CYFRA: '', ProGRP: '', NSE: '' },
   endo: { TSH: '', FT3: '', FT4: '', Cortisol: '', ACTH: '', GH: '', IGF1: '', PRL: '', LH: '', FSH: '', E2: '', Testosterone: '', PTH: '', Insulin: '', 'C-peptide': '' },
   urineBio: { 'U-TP': '', 'U-Alb': '', 'U-Cr': '', 'U-Na': '', 'U-K': '', 'U-Cl': '', 'U-UN': '', 'U-UA': '', 'U-Amy': '' },
-  csf: { '細胞数': '', '蛋白': '', '糖': '', 'Cl': '', '圧': '', '外観': '' }
+  csf: { '髄液細胞数': '', '髄液蛋白': '', '髄液糖': '', '髄液Cl': '', '髄液圧': '', '髄液外観': '' }
 };
 
 const LABS = {
@@ -1021,7 +1021,7 @@ const LABS = {
   tumor: { name: '腫瘍マーカー', items: [['CEA', 'ng/mL'], ['CA19_9', 'U/mL'], ['AFP', 'ng/mL'], ['PSA', 'ng/mL'], ['CA125', 'U/mL'], ['CA15_3', 'U/mL'], ['SCC', 'ng/mL'], ['CYFRA', 'ng/mL'], ['ProGRP', 'pg/mL'], ['NSE', 'ng/mL']] },
   endo: { name: '内分泌', items: [['TSH', 'μIU/mL'], ['FT3', 'pg/mL'], ['FT4', 'ng/dL'], ['Cortisol', 'μg/dL'], ['ACTH', 'pg/mL'], ['GH', 'ng/mL'], ['IGF1', 'ng/mL'], ['PRL', 'ng/mL'], ['LH', 'mIU/mL'], ['FSH', 'mIU/mL'], ['E2', 'pg/mL'], ['Testosterone', 'ng/dL'], ['PTH', 'pg/mL'], ['Insulin', 'μU/mL'], ['C-peptide', 'ng/mL']] },
   urineBio: { name: '尿生化', items: [['U-TP', 'mg/dL'], ['U-Alb', 'mg/dL'], ['U-Cr', 'mg/dL'], ['U-Na', 'mEq/L'], ['U-K', 'mEq/L'], ['U-Cl', 'mEq/L'], ['U-UN', 'mg/dL'], ['U-UA', 'mg/dL'], ['U-Amy', 'U/L']] },
-  csf: { name: '髄液検査', items: [['細胞数', '/μL'], ['蛋白', 'mg/dL'], ['糖', 'mg/dL'], ['Cl', 'mEq/L'], ['圧', 'cmH2O'], ['外観', '']] }
+  csf: { name: '髄液検査', items: [['髄液細胞数', '/μL'], ['髄液蛋白', 'mg/dL'], ['髄液糖', 'mg/dL'], ['髄液Cl', 'mEq/L'], ['髄液圧', 'cmH2O'], ['髄液外観', '']] }
 };
 
 // ドクターカー参考の所見グループ
@@ -1922,11 +1922,18 @@ function initGeminiAPI() {
 - RBC、WBC、上皮、円柱、細菌 など
 - 単位：/HPF（高倍率視野あたり）
 
+■ 髄液検査（特殊検査）
+- 髄液検査のセクションがある場合のみ
+- 髄液Cl、髄液糖、髄液蛋白、髄液細胞数 など
+- ※血清Clと髄液Clは異なります
+
 【抽出ルール】
 1. 項目名は英語略号を使用（WBC、RBC、Na、Cr など）
-2. 血液検査のWBC/RBCと尿検査のWBC/RBCは異なる検査です
-   - 血液検査のセクションにある → 「WBC」「RBC」
-   - 尿検査のセクションにある → この項目はスキップ（または「尿中WBC」「尿中RBC」と明記）
+2. 同じ略号でも検査種別が異なる場合があります：
+   - 血液検査のWBC/RBC → 「WBC」「RBC」
+   - 尿検査のWBC/RBC → スキップ
+   - 血清Cl → 「Cl」
+   - 髄液Cl → 「髄液Cl」（明記）
 3. 数値のみ抽出（記号は除去）
 4. 単位を正確に記載
 5. 判読不能な値はスキップ
@@ -2194,15 +2201,22 @@ function renderOcrResults() {
   };
   
   // 項目名からカテゴリを判定するマッピング
+  // 優先順位: 一般的な検査 → 特殊な検査
+  const categoryPriority = ['cbc', 'chem', 'coag', 'sugar', 'gas', 'urine', 'sediment', 'tumor', 'endo', 'urineBio', 'csf'];
+  
   const itemToCat = {};
-  Object.entries(LABS).forEach(([cat, def]) => {
-    def.items.forEach(([item, unit]) => {
-      itemToCat[item] = { cat, unit };
+  categoryPriority.forEach(cat => {
+    if (!LABS[cat]) return;
+    LABS[cat].items.forEach(([item, unit]) => {
+      // 既にマッピングが存在する場合は優先順位の高い方を維持（上書きしない）
+      if (!itemToCat[item]) {
+        itemToCat[item] = { cat, unit };
+      }
       // 別名対応
-      if (item === 'γ-GTP') itemToCat['GGT'] = { cat, unit };
-      if (item === 'T-bil') itemToCat['TB'] = { cat, unit };
-      if (item === 'D-bil') itemToCat['DB'] = { cat, unit };
-      if (item === 'HCO3-') itemToCat['HCO3'] = { cat, unit };
+      if (item === 'γ-GTP' && !itemToCat['GGT']) itemToCat['GGT'] = { cat, unit };
+      if (item === 'T-bil' && !itemToCat['TB']) itemToCat['TB'] = { cat, unit };
+      if (item === 'D-bil' && !itemToCat['DB']) itemToCat['DB'] = { cat, unit };
+      if (item === 'HCO3-' && !itemToCat['HCO3']) itemToCat['HCO3'] = { cat, unit };
     });
   });
   
@@ -2275,15 +2289,22 @@ function applyLabData(labData) {
   console.log('Input data:', labData);
   
   // 項目名からカテゴリを判定するマッピング
+  // 優先順位: 一般的な検査 → 特殊な検査
+  const categoryPriority = ['cbc', 'chem', 'coag', 'sugar', 'gas', 'urine', 'sediment', 'tumor', 'endo', 'urineBio', 'csf'];
+  
   const itemToCat = {};
-  Object.entries(LABS).forEach(([cat, def]) => {
-    def.items.forEach(([item, unit]) => {
-      itemToCat[item] = { cat, unit };
+  categoryPriority.forEach(cat => {
+    if (!LABS[cat]) return;
+    LABS[cat].items.forEach(([item, unit]) => {
+      // 既にマッピングが存在する場合は優先順位の高い方を維持（上書きしない）
+      if (!itemToCat[item]) {
+        itemToCat[item] = { cat, unit };
+      }
       // 別名対応
-      if (item === 'γ-GTP') itemToCat['GGT'] = { cat, unit };
-      if (item === 'T-bil') itemToCat['TB'] = { cat, unit };
-      if (item === 'D-bil') itemToCat['DB'] = { cat, unit };
-      if (item === 'HCO3-') itemToCat['HCO3'] = { cat, unit };
+      if (item === 'γ-GTP' && !itemToCat['GGT']) itemToCat['GGT'] = { cat, unit };
+      if (item === 'T-bil' && !itemToCat['TB']) itemToCat['TB'] = { cat, unit };
+      if (item === 'D-bil' && !itemToCat['DB']) itemToCat['DB'] = { cat, unit };
+      if (item === 'HCO3-' && !itemToCat['HCO3']) itemToCat['HCO3'] = { cat, unit };
     });
   });
   
@@ -2291,7 +2312,9 @@ function applyLabData(labData) {
   console.log('  WBC →', itemToCat['WBC']);
   console.log('  RBC →', itemToCat['RBC']);
   console.log('  Na →', itemToCat['Na']);
+  console.log('  Cl →', itemToCat['Cl']);
   console.log('  Hb →', itemToCat['Hb']);
+  console.log('  髄液Cl →', itemToCat['髄液Cl']);
   
   let addedCount = 0;
   const results = [];
