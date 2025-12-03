@@ -1,0 +1,2693 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="外来ワンページ">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<title>外来ワンページ iPhone版 v2.4</title>
+<style>
+:root {
+  --ink: #111827;
+  --muted: #6b7280;
+  --bg: #f3f4f6;
+  --card: #fff;
+  --line: #e5e7eb;
+  --brand: #2563eb;
+  --brand-light: #dbeafe;
+  --danger: #ef4444;
+  --success: #22c55e;
+  --tab-height: 56px;
+  --header-height: 48px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { 
+  height: 100%; 
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 15px;
+  -webkit-text-size-adjust: 100%;
+}
+
+header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: calc(var(--header-height) + var(--safe-top));
+  padding-top: var(--safe-top);
+  background: var(--brand);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-left: 16px;
+  padding-right: 16px;
+  z-index: 100;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+header h1 { font-size: 17px; font-weight: 600; }
+header .version { font-size: 11px; opacity: 0.8; }
+
+main {
+  position: fixed;
+  top: calc(var(--header-height) + var(--safe-top));
+  bottom: calc(var(--tab-height) + var(--safe-bottom));
+  left: 0;
+  right: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tab-content {
+  display: none;
+  padding: 12px;
+  padding-bottom: 24px;
+}
+.tab-content.active { display: block; }
+
+.card {
+  background: var(--card);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+.card h2 {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.card h3 {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 16px 0 8px;
+  color: #374151;
+}
+
+label {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+input, textarea, select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 15px;
+  background: #fff;
+  -webkit-appearance: none;
+  appearance: none;
+}
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px var(--brand-light);
+}
+textarea { resize: vertical; min-height: 80px; }
+select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%236b7280' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+}
+
+.form-row { margin-bottom: 12px; }
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.form-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.form-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.vital-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px 12px;
+  align-items: center;
+}
+.vital-grid b { font-size: 13px; color: #374151; }
+.vital-grid select { padding: 8px; }
+.vital-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.vital-row select { width: auto; min-width: 70px; }
+.vital-row .unit { font-size: 12px; color: var(--muted); }
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  font-size: 13px;
+  background: #f9fafb;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.15s;
+}
+.chip[data-state="on"] { background: #eef2ff; border-color: #c7d2fe; }
+.chip[data-state="+"] { background: #fee2e2; border-color: #fecaca; }
+.chip[data-state="-"] { background: #dcfce7; border-color: #bbf7d0; }
+
+.exam-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 4px;
+}
+.exam-tab {
+  flex-shrink: 0;
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  font-size: 13px;
+  background: #f9fafb;
+  cursor: pointer;
+}
+.exam-tab.active {
+  background: var(--brand);
+  color: #fff;
+  border-color: var(--brand);
+}
+.exam-pane { display: none; }
+.exam-pane.active { display: block; }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  min-height: 44px;
+}
+.btn-primary { background: var(--brand); color: #fff; }
+.btn-primary:active { background: #1d4ed8; }
+.btn-outline { background: #fff; color: var(--ink); border: 1px solid var(--line); }
+.btn-outline:active { background: #f3f4f6; }
+.btn-danger { background: #fff; color: var(--danger); border: 1px solid var(--danger); }
+.btn-success { background: var(--success); color: #fff; }
+.btn-sm { padding: 6px 10px; font-size: 12px; min-height: 32px; }
+.btn-block { width: 100%; }
+
+.btn-group {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.lab-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.lab-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+}
+.lab-pill label { margin: 0; font-size: 12px; color: var(--ink); font-weight: 500; }
+.lab-pill input {
+  width: 70px;
+  padding: 4px 8px;
+  font-size: 13px;
+  text-align: center;
+}
+.lab-pill .unit { font-size: 11px; color: var(--muted); }
+.lab-pill .del {
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: #f3f4f6;
+  border-radius: 50%;
+  font-size: 14px;
+  color: var(--muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.problem-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.problem-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  background: var(--brand-light);
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  font-size: 13px;
+}
+.problem-tag .num { font-weight: 600; color: var(--brand); }
+.problem-tag .del {
+  width: 18px;
+  height: 18px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.problem-item {
+  margin-bottom: 16px;
+  padding: 12px;
+  background: #f9fafb;
+  border-radius: 8px;
+}
+.problem-item .header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.problem-item .header .num {
+  font-weight: 600;
+  color: var(--brand);
+  font-size: 14px;
+}
+.problem-item .header span { font-size: 11px; color: var(--muted); }
+.problem-item input { margin-bottom: 8px; }
+.problem-item textarea { min-height: 60px; }
+
+.fold {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  margin-top: 12px;
+  overflow: hidden;
+}
+.fold summary {
+  padding: 12px;
+  background: #f9fafb;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.fold summary .badge {
+  background: var(--brand-light);
+  color: var(--brand);
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+}
+.fold-body { padding: 12px; }
+.nih-row {
+  margin-bottom: 12px;
+}
+.nih-row b { font-size: 13px; display: block; margin-bottom: 4px; }
+.nih-row .hint { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+.nih-row select { width: 100%; }
+
+.culture-entry {
+  padding: 12px;
+  background: #f9fafb;
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+.culture-entry .form-grid { margin-bottom: 8px; }
+
+.check-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.check-line label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--ink);
+}
+.check-line input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+}
+
+.output-box {
+  background: #fafafa;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  white-space: pre-wrap;
+  font-size: 13px;
+  line-height: 1.6;
+  min-height: 300px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.ecg-detail {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.toggle-group {
+  display: flex;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.toggle-group .toggle-btn {
+  flex: 1;
+  padding: 12px;
+  text-align: center;
+  background: #f9fafb;
+  border: none;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.toggle-group .toggle-btn.active {
+  background: var(--brand);
+  color: #fff;
+}
+.toggle-group .toggle-btn:not(:last-child) {
+  border-right: 1px solid var(--line);
+}
+
+.plan-section {
+  display: none;
+  margin-top: 12px;
+}
+.plan-section.active {
+  display: block;
+}
+
+.tab-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: calc(var(--tab-height) + var(--safe-bottom));
+  padding-bottom: var(--safe-bottom);
+  background: #fff;
+  border-top: 1px solid var(--line);
+  display: flex;
+  z-index: 100;
+}
+.tab-bar-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  color: var(--muted);
+  font-size: 10px;
+  cursor: pointer;
+  transition: color 0.15s;
+  padding: 4px;
+}
+.tab-bar-item.active { color: var(--brand); }
+.tab-bar-item svg {
+  width: 24px;
+  height: 24px;
+}
+.tab-bar-item span { font-weight: 500; }
+
+.small { font-size: 12px; color: var(--muted); }
+.mt-2 { margin-top: 8px; }
+.mt-3 { margin-top: 12px; }
+.mb-2 { margin-bottom: 8px; }
+.text-center { text-align: center; }
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  background: #f3f4f6;
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+@media print {
+  header, .tab-bar { display: none !important; }
+  main {
+    position: static;
+    overflow: visible;
+  }
+  .tab-content { display: none !important; }
+  .tab-content[data-tab="output"] { display: block !important; }
+  .output-box { border: none; max-height: none; }
+  .btn { display: none; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>外来ワンページ</h1>
+    <div class="version">iPhone版 v2.1.0</div>
+  </div>
+  <button class="btn btn-sm" id="btnReset" style="background:rgba(255,255,255,0.2);color:#fff;border:1px solid rgba(255,255,255,0.5)">🗑 初期化</button>
+</header>
+
+<main>
+  <!-- タブ1: 病歴 -->
+  <div class="tab-content active" data-tab="history">
+    <div class="card">
+      <h2>📋 基本情報・病歴</h2>
+      <div class="form-row">
+        <label>主訴</label>
+        <input id="cc" placeholder="例: 胸痛、発熱">
+      </div>
+      <div class="form-row">
+        <label>受診日</label>
+        <input type="date" id="visitDate">
+      </div>
+      <div class="form-row">
+        <label>現病歴</label>
+        <textarea id="hpi" rows="4" placeholder="発症からの経過を記載"></textarea>
+      </div>
+      <div class="form-grid">
+        <div class="form-row">
+          <label>既往歴</label>
+          <textarea id="pmh" rows="3" placeholder="高血圧、DM等"></textarea>
+        </div>
+        <div class="form-row">
+          <label>常用薬</label>
+          <textarea id="meds" rows="3" placeholder="アムロジピン5mg等"></textarea>
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="form-row">
+          <label>アレルギー</label>
+          <input id="allergy" placeholder="薬剤・食物">
+        </div>
+        <div class="form-row">
+          <label>家族歴</label>
+          <input id="familyHx" placeholder="父:高血圧、母:DM等">
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="form-row">
+          <label>嗜好歴</label>
+          <input id="habits" placeholder="喫煙20本/日×20年等">
+        </div>
+        <div class="form-row">
+          <label>生活歴</label>
+          <input id="social" placeholder="独居、ADL自立等">
+        </div>
+      </div>
+      <div class="form-row">
+        <label>キーパーソン</label>
+        <input id="keyPerson" placeholder="長男、妻等（連絡先・関係性）">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- タブ2: 所見 -->
+  <div class="tab-content" data-tab="exam">
+    <div class="card">
+      <h2>💓 バイタルサイン</h2>
+      <div id="vitalsContainer"></div>
+      <button class="btn btn-primary btn-block mt-2" id="addVitalBtn">＋ バイタル追加</button>
+    </div>
+
+    <div class="card">
+      <h2>🩺 身体所見</h2>
+      <div class="exam-tabs" id="examTabs">
+        <div class="exam-tab active" data-exam="general">汎用</div>
+        <div class="exam-tab" data-exam="trauma">外傷</div>
+        <div class="exam-tab" data-exam="stroke">脳梗塞</div>
+        <div class="exam-tab" data-exam="cpa">CPA</div>
+      </div>
+
+      <!-- 汎用 -->
+      <div class="exam-pane active" data-pane="general">
+        <h3>頭頚部</h3>
+        <div class="chips" id="gen-head"></div>
+        <textarea class="mt-2" id="memo-gen-head" rows="2" placeholder="メモ"></textarea>
+        
+        <h3>呼吸器</h3>
+        <div class="chips" id="gen-resp"></div>
+        <textarea class="mt-2" id="memo-gen-resp" rows="2" placeholder="メモ"></textarea>
+        
+        <h3>循環器</h3>
+        <div class="chips" id="gen-card"></div>
+        <textarea class="mt-2" id="memo-gen-card" rows="2" placeholder="メモ"></textarea>
+        
+        <h3>腹部</h3>
+        <div class="chips" id="gen-abd"></div>
+        <textarea class="mt-2" id="memo-gen-abd" rows="2" placeholder="メモ"></textarea>
+        
+        <h3>四肢</h3>
+        <div class="chips" id="gen-limb"></div>
+        <textarea class="mt-2" id="memo-gen-limb" rows="2" placeholder="メモ"></textarea>
+        
+        <h3>神経</h3>
+        <div class="chips" id="gen-neuro"></div>
+        <textarea class="mt-2" id="memo-gen-neuro" rows="2" placeholder="メモ"></textarea>
+        
+        <div class="form-row mt-3">
+          <label>自由記載</label>
+          <textarea id="examFree" rows="3" placeholder="追記や否定所見"></textarea>
+        </div>
+        <p class="small">タップで切替: 未選択→(+)→なし→未選択</p>
+      </div>
+
+      <!-- 外傷 -->
+      <div class="exam-pane" data-pane="trauma">
+        <h3>頭部・顔面</h3>
+        <div class="chips" id="tra-head"></div>
+        <textarea class="mt-2" id="memo-tra-head" rows="2" placeholder="メモ"></textarea>
+        
+        <h3>頸部</h3>
+        <div class="chips" id="tra-neck"></div>
+        <textarea class="mt-2" id="memo-tra-neck" rows="2" placeholder="メモ"></textarea>
+        
+        <h3>胸部</h3>
+        <div class="chips" id="tra-chest"></div>
+        <textarea class="mt-2" id="memo-tra-chest" rows="2" placeholder="メモ"></textarea>
+        
+        <h3>腹部</h3>
+        <div class="chips" id="tra-abd"></div>
+        <textarea class="mt-2" id="memo-tra-abd" rows="2" placeholder="メモ"></textarea>
+        
+        <h3>骨盤・泌尿生殖</h3>
+        <div class="chips" id="tra-pelvis"></div>
+        <textarea class="mt-2" id="memo-tra-pelvis" rows="2" placeholder="メモ"></textarea>
+        
+        <h3>四肢</h3>
+        <div class="chips" id="tra-limb"></div>
+        <textarea class="mt-2" id="memo-tra-limb" rows="2" placeholder="メモ"></textarea>
+        
+        <h3>四肢機能</h3>
+        <div class="form-grid">
+          <div><label>右上肢</label><input id="tra-ru" placeholder="M5/5, S正常"></div>
+          <div><label>右下肢</label><input id="tra-rl" placeholder="M5/5, S正常"></div>
+          <div><label>左上肢</label><input id="tra-lu" placeholder="M5/5, S正常"></div>
+          <div><label>左下肢</label><input id="tra-ll" placeholder="M5/5, S正常"></div>
+        </div>
+      </div>
+
+      <!-- 脳梗塞 -->
+      <div class="exam-pane" data-pane="stroke">
+        <h3>脳神経 II–XII</h3>
+        <div class="chips" id="str-cn"></div>
+        <textarea class="mt-2" id="memo-str-cn" rows="2" placeholder="メモ"></textarea>
+        
+        <h3>瞳孔・眼</h3>
+        <div class="form-grid">
+          <div><label>瞳孔径 左(mm)</label><select id="pupilL"></select></div>
+          <div><label>瞳孔径 右(mm)</label><select id="pupilR"></select></div>
+        </div>
+        <div class="form-grid mt-2">
+          <div><label>対光反射 左</label><select id="plrL"><option></option><option>迅速</option><option>遅延</option><option>消失</option></select></div>
+          <div><label>対光反射 右</label><select id="plrR"><option></option><option>迅速</option><option>遅延</option><option>消失</option></select></div>
+        </div>
+        <div class="form-grid mt-2">
+          <div><label>共同偏視</label><select id="gaze"><option></option><option>なし</option><option>右</option><option>左</option></select></div>
+          <div><label>眼振</label><select id="nyst"><option></option><option>なし</option><option>水平</option><option>回旋</option><option>垂直</option></select></div>
+        </div>
+        <textarea class="mt-2" id="memo-str-eye" rows="2" placeholder="眼所見メモ"></textarea>
+        
+        <h3>運動（MMT 0-5）</h3>
+        <div class="form-grid">
+          <div><label>右上肢</label><select id="mmtRU"></select></div>
+          <div><label>右下肢</label><select id="mmtRL"></select></div>
+          <div><label>左上肢</label><select id="mmtLU"></select></div>
+          <div><label>左下肢</label><select id="mmtLL"></select></div>
+        </div>
+        <textarea class="mt-2" id="memo-str-motor" rows="2" placeholder="運動所見メモ"></textarea>
+        
+        <h3>反射・錐体路</h3>
+        <div class="form-grid">
+          <div><label>BTR</label><select id="btr"><option></option><option>正常</option><option>亢進</option><option>低下</option></select></div>
+          <div><label>PTR</label><select id="ptr"><option></option><option>正常</option><option>亢進</option><option>低下</option></select></div>
+        </div>
+        <div class="check-line mt-2">
+          <label><input type="checkbox" id="babinski"> Babinski陽性</label>
+          <label><input type="checkbox" id="chaddock"> Chaddock陽性</label>
+        </div>
+        <textarea class="mt-2" id="memo-str-reflex" rows="2" placeholder="反射メモ"></textarea>
+        
+        <h3>高次脳機能・小脳</h3>
+        <div class="chips" id="str-higher"></div>
+        <textarea class="mt-2" id="memo-str-higher" rows="2" placeholder="メモ"></textarea>
+        
+        <details class="fold">
+          <summary>NIHSS <span class="badge" id="nihSum">合計 0</span></summary>
+          <div class="fold-body" id="nihssBody"></div>
+        </details>
+      </div>
+
+      <!-- CPA -->
+      <div class="exam-pane" data-pane="cpa">
+        <h3>全身所見</h3>
+        <div class="chips" id="cpa-body"></div>
+        <textarea class="mt-2" id="memo-cpa-body" rows="2" placeholder="メモ"></textarea>
+        
+        <h3>頭頚部</h3>
+        <div class="chips" id="cpa-head"></div>
+        <textarea class="mt-2" id="memo-cpa-head" rows="2" placeholder="メモ"></textarea>
+        
+        <h3>胸腹部</h3>
+        <div class="chips" id="cpa-trunk"></div>
+        <textarea class="mt-2" id="memo-cpa-trunk" rows="2" placeholder="メモ"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- タブ3: 検査 -->
+  <div class="tab-content" data-tab="lab">
+    <div class="card">
+      <h2>🔬 検査</h2>
+      
+      <!-- テキスト貼り付け・画像読み取り機能 -->
+      <div class="ocr-section mb-2" style="border:1px solid #c4b5fd;border-radius:10px;padding:12px;background:#faf5ff">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+          <button class="btn btn-sm btn-outline" id="labPasteBtn">
+            📋 テキスト
+          </button>
+          <button class="btn btn-sm btn-primary" id="geminiImageBtn">
+            📷 画像
+          </button>
+        </div>
+        <button class="btn btn-sm btn-outline" id="geminiSettingsBtn" style="width:100%;font-size:11px;padding:4px 10px;min-height:32px">
+          ⚙️ Gemini API設定
+        </button>
+        <input type="file" id="geminiImageInput" accept="image/*" capture="environment" style="display:none">
+        <div id="pasteArea" style="display:none;margin-top:8px">
+          <textarea id="labPasteText" rows="6" placeholder="電子カルテから検査結果をコピーして貼り付けてください&#10;&#10;例：&#10;WBC 7500&#10;RBC 450&#10;Hb 13.5&#10;Na 140&#10;K 4.2" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:8px;font-size:12px;"></textarea>
+          <div class="btn-group mt-2">
+            <button class="btn btn-sm btn-primary" id="labParseBtn">解析して反映</button>
+            <button class="btn btn-sm" id="labPasteCancelBtn">キャンセル</button>
+          </div>
+        </div>
+        <div id="pasteStatus" class="small mt-2" style="display:none"></div>
+      </div>
+      
+      <!-- 読み取り結果の確認・編集エリア -->
+      <div id="ocrResultArea" style="display:none;margin-bottom:12px">
+        <div style="background:#f5f3ff;border:1px solid #c4b5fd;border-radius:8px;padding:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <h3 style="margin:0;font-size:14px;color:#6d28d9">📋 読み取り結果</h3>
+            <button class="btn btn-sm" id="ocrClearBtn" style="padding:2px 8px;font-size:11px">クリア</button>
+          </div>
+          <div id="ocrResultList" class="lab-pills"></div>
+          <button class="btn btn-sm btn-success btn-block mt-2" id="ocrApplyBtn">検査値に反映</button>
+        </div>
+      </div>
+      
+      <div class="form-grid mb-2">
+        <div>
+          <label>カテゴリ</label>
+          <select id="labCat">
+            <option value="cbc">血算</option>
+            <option value="chem">生化学</option>
+            <option value="coag">凝固</option>
+            <option value="sugar">血糖・心不全</option>
+            <option value="gas">血液ガス</option>
+            <option value="urine">尿定性</option>
+            <option value="sediment">尿沈渣</option>
+            <option value="tumor">腫瘍マーカー</option>
+            <option value="endo">内分泌</option>
+            <option value="urineBio">尿生化</option>
+            <option value="csf">髄液検査</option>
+          </select>
+        </div>
+        <div>
+          <label>項目</label>
+          <select id="labItem"></select>
+        </div>
+      </div>
+      <div class="btn-group mb-2">
+        <button class="btn btn-sm btn-primary" id="labAdd">追加</button>
+        <button class="btn btn-sm btn-success" id="labSetAll">一式</button>
+      </div>
+      
+      <div class="btn-group mb-2">
+        <button class="btn btn-sm btn-outline" id="labSetCBC">血算</button>
+        <button class="btn btn-sm btn-outline" id="labSetChem">生化</button>
+        <button class="btn btn-sm btn-outline" id="labSetCoag">凝固</button>
+        <button class="btn btn-sm btn-outline" id="labSetGas">ABG</button>
+        <button class="btn btn-sm btn-outline" id="labSetUrine">尿</button>
+      </div>
+      <div id="labEditArea"></div>
+      
+      <div class="form-row mt-3">
+        <label>フリー入力</label>
+        <textarea id="labFree" rows="3" placeholder="その他検査値"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- タブ4: 感染・画像 -->
+  <div class="tab-content" data-tab="image">
+    <div class="card">
+      <h2>🦠 感染症検査</h2>
+      <div class="form-grid mb-2">
+        <div>
+          <label>COVID-19</label>
+          <select id="covidType">
+            <option value="">未実施</option>
+            <option value="antigen">抗原</option>
+            <option value="naat">NAAT</option>
+          </select>
+        </div>
+        <div>
+          <label>結果</label>
+          <select id="covidRes">
+            <option value="">-</option>
+            <option>陽性</option>
+            <option>陰性</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-grid mb-2">
+        <div>
+          <label>Influenza A</label>
+          <select id="fluA"><option value="">-</option><option>陽性</option><option>陰性</option></select>
+        </div>
+        <div>
+          <label>Influenza B</label>
+          <select id="fluB"><option value="">-</option><option>陽性</option><option>陰性</option></select>
+        </div>
+      </div>
+      
+      <h3>培養</h3>
+      <div id="cultureArea"></div>
+      <button class="btn btn-sm btn-outline mt-2" id="cultureAdd">＋培養を追加</button>
+    </div>
+
+    <div class="card">
+      <h2>🖼️ 画像検査</h2>
+      <div class="check-line">
+        <label><input type="checkbox" id="cxrOn"> 胸部XP</label>
+        <label><input type="checkbox" id="ctOn"> CT</label>
+        <label><input type="checkbox" id="ctcOn"> 造影CT</label>
+        <label><input type="checkbox" id="mriOn"> MRI</label>
+        <label><input type="checkbox" id="imgOtherOn"> その他</label>
+      </div>
+      <div id="imgTextArea"></div>
+    </div>
+
+    <div class="card">
+      <h2>📊 生理機能検査</h2>
+      <div class="check-line">
+        <label><input type="checkbox" id="ecgOn"> 心電図</label>
+        <label><input type="checkbox" id="eegOn"> 脳波</label>
+        <label><input type="checkbox" id="usOn"> 超音波</label>
+        <label><input type="checkbox" id="phyOtherOn"> その他</label>
+      </div>
+      <div id="phyTextArea"></div>
+    </div>
+  </div>
+
+  <!-- タブ5: 評価 -->
+  <div class="tab-content" data-tab="assess">
+    <div class="card">
+      <h2>📝 プロブレムリスト</h2>
+      <div class="form-row">
+        <label>新規プロブレム（Enterで追加）</label>
+        <input id="probInput" placeholder="プロブレム名を入力">
+      </div>
+      <div class="problem-tags" id="probTags"></div>
+      <div id="probDetails"></div>
+    </div>
+
+    <div class="card">
+      <h2>📌 入院後経過 / 方針</h2>
+      <div class="toggle-group mb-2">
+        <button class="toggle-btn active" data-plan="course">入院後経過</button>
+        <button class="toggle-btn" data-plan="plan">方針（P）</button>
+      </div>
+      
+      <div class="plan-section active" id="courseSection">
+        <label>入院後経過</label>
+        <textarea id="courseText" rows="5" placeholder="入院後の経過を記載&#10;例：入院後、●●の治療を開始。バイタル安定。"></textarea>
+      </div>
+      
+      <div class="plan-section" id="planSection">
+        <label>方針（P）・今後の予定</label>
+        <textarea id="planText" rows="5" placeholder="今後の方針・予定を記載&#10;例：本日CT再検予定、明日心エコー予定"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- タブ6: 出力 -->
+  <div class="tab-content" data-tab="output">
+    <div class="card">
+      <h2>📄 入院サマリ</h2>
+      <div class="btn-group mb-2">
+        <button class="btn btn-primary" id="copyOut">コピー</button>
+        <button class="btn btn-outline" id="printOut">印刷/PDF</button>
+        <button class="btn btn-danger" id="btnResetMain">🗑 初期化</button>
+      </div>
+      <div class="output-box" id="outputText"></div>
+    </div>
+  </div>
+</main>
+
+<nav class="tab-bar">
+  <div class="tab-bar-item active" data-tab="history">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+    <span>病歴</span>
+  </div>
+  <div class="tab-bar-item" data-tab="exam">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+    <span>所見</span>
+  </div>
+  <div class="tab-bar-item" data-tab="lab">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
+    <span>検査</span>
+  </div>
+  <div class="tab-bar-item" data-tab="image">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+    <span>画像</span>
+  </div>
+  <div class="tab-bar-item" data-tab="assess">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+    <span>評価</span>
+  </div>
+  <div class="tab-bar-item" data-tab="output">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+    <span>出力</span>
+  </div>
+</nav>
+
+<!-- Gemini API設定モーダル -->
+<div id="geminiModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:200;overflow-y:auto;-webkit-overflow-scrolling:touch">
+  <div style="min-height:100%;display:flex;align-items:center;justify-content:center;padding:20px;padding-top:calc(20px + env(safe-area-inset-top));padding-bottom:calc(20px + env(safe-area-inset-bottom));padding-left:calc(20px + env(safe-area-inset-left));padding-right:calc(20px + env(safe-area-inset-right))">
+    <div style="background:#fff;border-radius:16px;padding:24px;max-width:500px;width:100%;box-shadow:0 20px 25px -5px rgba(0,0,0,0.1)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <h2 style="margin:0;font-size:18px;font-weight:600">⚙️ Gemini API 設定</h2>
+        <button id="geminiModalClose" style="border:none;background:transparent;font-size:24px;cursor:pointer;color:#6b7280;padding:0;width:32px;height:32px;line-height:1">×</button>
+      </div>
+      <div style="margin-bottom:16px">
+        <label style="display:block;font-size:13px;font-weight:500;color:#374151;margin-bottom:8px">APIキー</label>
+        <input type="password" id="geminiApiKey" placeholder="AIzaSy..." style="width:100%;padding:10px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:14px;-webkit-appearance:none">
+        <p style="font-size:12px;color:#6b7280;margin-top:6px;line-height:1.5">
+          Gemini APIキーは <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:#2563eb">Google AI Studio</a> で取得できます。<br>
+          ブラウザのローカルストレージに保存されます。
+        </p>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-primary" id="geminiSaveBtn" style="flex:1">保存</button>
+        <button class="btn btn-outline" id="geminiCancelBtn" style="flex:1">キャンセル</button>
+      </div>
+      <div id="geminiStatus" style="margin-top:12px;font-size:12px;display:none"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const $$ = (s) => document.querySelectorAll(s);
+const today = () => new Date().toISOString().split('T')[0];
+
+const state = {
+  cc: '', visitDate: '', hpi: '', pmh: '', meds: '', allergy: '', familyHx: '', habits: '', social: '', keyPerson: '',
+  vitals: [],
+  chips: {},
+  memos: {
+    general: { head: '', resp: '', card: '', abd: '', limb: '', neuro: '' },
+    trauma: { head: '', neck: '', chest: '', abd: '', pelvis: '', limb: '' },
+    stroke: { cn: '', eye: '', motor: '', reflex: '', higher: '' },
+    cpa: { body: '', head: '', trunk: '' }
+  },
+  examFree: '',
+  examTab: 'general',
+  trauma: { ru: '', rl: '', lu: '', ll: '' },
+  stroke: {
+    pupilL: '', pupilR: '', plrL: '', plrR: '', gaze: '', nyst: '',
+    mmt: { ru: '', rl: '', lu: '', ll: '' },
+    btr: '', ptr: '', babinski: false, chaddock: false,
+    nih: {}
+  },
+  labs: { cbc: [], chem: [], coag: [], sugar: [], gas: [], urine: [], sediment: [], tumor: [], endo: [], urineBio: [], csf: [], gasType: 'ABG' },
+  labFree: '',
+  infect: { covid: { type: '', res: '' }, flu: { a: '', b: '' }, cultures: [] },
+  imaging: { 
+    cxr: { on: false, txt: '' }, 
+    ct: { on: false, txt: '' }, 
+    ctc: { on: false, txt: '' }, 
+    mri: { on: false, txt: '' },
+    other: { on: false, name: '', txt: '' }
+  },
+  phys: { 
+    ecg: { on: false, rhythm: '', rate: '', st: '', qtc: '', txt: '' }, 
+    eeg: { on: false, txt: '' }, 
+    us: { on: false, txt: '' },
+    other: { on: false, name: '', txt: '' }
+  },
+  problems: [],
+  activePlan: 'course',
+  courseText: '',
+  planText: ''
+};
+
+const NORMALS = {
+  cbc: { WBC: '7000', RBC: '4.5', Hb: '14.0', Ht: '42', Plt: '20', MCV: '90', MCH: '30', MCHC: '33' },
+  chem: { Na: '140', K: '4.0', Cl: '103', BUN: '15', Cr: '0.8', eGFR: '80', AST: '20', ALT: '20', ALP: '200', 'γ-GTP': '30', 'T-bil': '0.8', 'D-bil': '0.2', TP: '7.0', Alb: '4.2', Glu: '100', CRP: '0.1', LDH: '200', CK: '100', Amy: '80', Lip: '30', UA: '5.0', Ca: '9.0', IP: '3.5', Mg: '2.0', Fe: '100', TIBC: '300', Ferritin: '100' },
+  coag: { 'PT-INR': '1.0', 'PT%': '100', APTT: '30', 'D-dimer': '0.5', FDP: '5', Fib: '300', AT3: '100' },
+  sugar: { HbA1c: '5.6', BNP: '20', 'NT-proBNP': '100' },
+  gas: { pH: '7.40', pCO2: '40', pO2: '95', 'HCO3-': '24', BE: '0', Lac: '1.0', SaO2: '98' },
+  urine: { pH: '6.0', '比重': '1.015', '蛋白': '−', '糖': '−', '潜血': '−', 'ケトン': '−', 'ウロビリ': '±', 'ビリルビン': '−', '亜硝酸塩': '−', '白血球': '−' },
+  sediment: { 'RBC': '0-1', 'WBC': '0-4', '扁平上皮': '少数', '円柱': '−', '細菌': '−', '結晶': '−' },
+  tumor: { CEA: '', CA19_9: '', AFP: '', PSA: '', CA125: '', CA15_3: '', SCC: '', CYFRA: '', ProGRP: '', NSE: '' },
+  endo: { TSH: '', FT3: '', FT4: '', Cortisol: '', ACTH: '', GH: '', IGF1: '', PRL: '', LH: '', FSH: '', E2: '', Testosterone: '', PTH: '', Insulin: '', 'C-peptide': '' },
+  urineBio: { 'U-TP': '', 'U-Alb': '', 'U-Cr': '', 'U-Na': '', 'U-K': '', 'U-Cl': '', 'U-UN': '', 'U-UA': '', 'U-Amy': '' },
+  csf: { '細胞数': '', '蛋白': '', '糖': '', 'Cl': '', '圧': '', '外観': '' }
+};
+
+const LABS = {
+  cbc: { name: '血算', items: [['WBC', '/μL'], ['RBC', '×10^6'], ['Hb', 'g/dL'], ['Ht', '%'], ['Plt', '×10^4'], ['MCV', 'fL'], ['MCH', 'pg'], ['MCHC', '%']] },
+  chem: { name: '生化学', items: [['Na', 'mEq/L'], ['K', 'mEq/L'], ['Cl', 'mEq/L'], ['BUN', 'mg/dL'], ['Cr', 'mg/dL'], ['eGFR', 'mL/min'], ['AST', 'U/L'], ['ALT', 'U/L'], ['ALP', 'U/L'], ['γ-GTP', 'U/L'], ['T-bil', 'mg/dL'], ['D-bil', 'mg/dL'], ['TP', 'g/dL'], ['Alb', 'g/dL'], ['Glu', 'mg/dL'], ['CRP', 'mg/dL'], ['LDH', 'U/L'], ['CK', 'U/L'], ['Amy', 'U/L'], ['Lip', 'U/L'], ['UA', 'mg/dL'], ['Ca', 'mg/dL'], ['IP', 'mg/dL'], ['Mg', 'mg/dL'], ['Fe', 'μg/dL'], ['TIBC', 'μg/dL'], ['Ferritin', 'ng/mL']] },
+  coag: { name: '凝固', items: [['PT-INR', ''], ['PT%', '%'], ['APTT', 'sec'], ['D-dimer', 'μg/mL'], ['FDP', 'μg/mL'], ['Fib', 'mg/dL'], ['AT3', '%']] },
+  sugar: { name: '血糖・心不全', items: [['HbA1c', '%'], ['BNP', 'pg/mL'], ['NT-proBNP', 'pg/mL']] },
+  gas: { name: '血液ガス', items: [['pH', ''], ['pCO2', 'mmHg'], ['pO2', 'mmHg'], ['HCO3-', 'mmol/L'], ['BE', 'mEq/L'], ['Lac', 'mmol/L'], ['SaO2', '%']] },
+  urine: { name: '尿定性', items: [['pH', ''], ['比重', ''], ['蛋白', ''], ['糖', ''], ['潜血', ''], ['ケトン', ''], ['ウロビリ', ''], ['ビリルビン', ''], ['亜硝酸塩', ''], ['白血球', '']] },
+  sediment: { name: '尿沈渣', items: [['RBC', '/HPF'], ['WBC', '/HPF'], ['扁平上皮', '/HPF'], ['円柱', ''], ['細菌', ''], ['結晶', '']] },
+  tumor: { name: '腫瘍マーカー', items: [['CEA', 'ng/mL'], ['CA19_9', 'U/mL'], ['AFP', 'ng/mL'], ['PSA', 'ng/mL'], ['CA125', 'U/mL'], ['CA15_3', 'U/mL'], ['SCC', 'ng/mL'], ['CYFRA', 'ng/mL'], ['ProGRP', 'pg/mL'], ['NSE', 'ng/mL']] },
+  endo: { name: '内分泌', items: [['TSH', 'μIU/mL'], ['FT3', 'pg/mL'], ['FT4', 'ng/dL'], ['Cortisol', 'μg/dL'], ['ACTH', 'pg/mL'], ['GH', 'ng/mL'], ['IGF1', 'ng/mL'], ['PRL', 'ng/mL'], ['LH', 'mIU/mL'], ['FSH', 'mIU/mL'], ['E2', 'pg/mL'], ['Testosterone', 'ng/dL'], ['PTH', 'pg/mL'], ['Insulin', 'μU/mL'], ['C-peptide', 'ng/mL']] },
+  urineBio: { name: '尿生化', items: [['U-TP', 'mg/dL'], ['U-Alb', 'mg/dL'], ['U-Cr', 'mg/dL'], ['U-Na', 'mEq/L'], ['U-K', 'mEq/L'], ['U-Cl', 'mEq/L'], ['U-UN', 'mg/dL'], ['U-UA', 'mg/dL'], ['U-Amy', 'U/L']] },
+  csf: { name: '髄液検査', items: [['細胞数', '/μL'], ['蛋白', 'mg/dL'], ['糖', 'mg/dL'], ['Cl', 'mEq/L'], ['圧', 'cmH2O'], ['外観', '']] }
+};
+
+// ドクターカー参考の所見グループ
+const GEN_GROUPS = {
+  head: { normal: ['意識清明', '顔面蒼白なし', 'チアノーゼなし'], abn: ['意識障害', '顔面蒼白', 'チアノーゼ', '発熱', '黄疸', '眼瞼結膜蒼白', '眼球結膜黄染'] },
+  resp: { normal: ['呼吸音清', '喘鳴なし'], abn: ['呼吸困難', '喘鳴', '湿性ラ音', 'coarse crackles', 'fine crackles', '呼吸音減弱', '左右差あり'] },
+  card: { normal: ['心音純', '不整なし', '下腿浮腫なし'], abn: ['ショック兆候', '心雑音', '不整脈', '冷汗', '下腿浮腫', '頸静脈怒張'] },
+  abd: { normal: ['腹部平坦軟', '圧痛なし', '反跳痛なし'], abn: ['腹痛', '圧痛', '反跳痛', '筋性防御', '板状硬', '腹部膨満', '腸蠕動音減弱', '腸蠕動音亢進'] },
+  limb: { normal: ['四肢冷感なし', '浮腫なし'], abn: ['四肢冷感', '浮腫', '変形', '末梢循環不全', 'CRT延長'] },
+  neuro: { normal: ['麻痺なし', '痙攣なし'], abn: ['片麻痺', '痙攣', '瞳孔不同', '対光反射異常', '項部硬直', 'Kernig徴候'] }
+};
+
+const TRA_GROUPS = {
+  head: ['前額部打撲血腫', '側頭部打撲血腫', '後頭部挫創', '頭皮裂傷', '顔面挫創', '顔面腫脹', 'パンダの目徴候', 'バトルサイン', '鼻出血', '耳出血', '髄液漏', '口腔内出血'],
+  neck: ['気管正中', '気管偏位', '頸部皮下気腫', '頸静脈怒張', '後頸部圧痛', '頸部打撲', '頸部血腫'],
+  chest: ['胸郭対称', '胸郭変形', '動揺胸郭', '胸壁圧痛', '胸壁皮下気腫', '右呼吸音減弱', '左呼吸音減弱', '心音減弱'],
+  abd: ['腹壁打撲', 'シートベルトサイン', 'ハンドル痕', '腹部圧痛', '筋性防御', '反跳痛', '腹部膨満'],
+  pelvis: ['骨盤動揺', '骨盤圧痛', '恥骨圧痛', '会陰部出血', '尿道出血'],
+  limb: ['右上肢変形', '左上肢変形', '右下肢変形', '左下肢変形', '開放創', '骨露出', '末梢動脈触知不良', 'CRT延長']
+};
+
+const STR_CNs = ['視力低下', '視野欠損', '複視', '眼瞼下垂', '顔面麻痺', '顔面感覚低下', '聴力低下', 'めまい', '構音障害', '嚥下障害', '舌偏位', 'カーテン徴候'];
+const STR_HIGHER = ['失語', '運動性失語', '感覚性失語', '構音障害', '失行', '失認', '半側空間無視', '注意障害', '見当識障害', '小脳失調', '指鼻試験異常', '踵膝試験異常'];
+
+const CPA_GROUPS = {
+  body: ['心停止', '呼吸停止', 'チアノーゼ', '四肢冷感', '皮膚蒼白', '死斑', '死後硬直'],
+  head: ['頸動脈触知不可', '対光反射消失', '瞳孔散大固定'],
+  trunk: ['心音聴取不可', '呼吸音聴取不可', '腹部膨隆']
+};
+
+const NIHSS_ITEMS = [
+  { key: '1a', label: '1a 意識水準', hint: '0:覚醒 1:軽度鈍麻 2:強刺激で開眼 3:反応なし', max: 3 },
+  { key: '1b', label: '1b 質問（年齢/月）', hint: '0:両方正解 1:1つ正解 2:両方不正解', max: 2 },
+  { key: '1c', label: '1c 従命（開閉眼/握手）', hint: '0:両方正解 1:1つ正解 2:両方不正解', max: 2 },
+  { key: '2', label: '2 注視', hint: '0:正常 1:部分的注視麻痺 2:完全注視麻痺', max: 2 },
+  { key: '3', label: '3 視野', hint: '0:正常 1:部分的半盲 2:完全半盲 3:両側性', max: 3 },
+  { key: '4', label: '4 顔面麻痺', hint: '0:なし 1:軽度 2:部分的 3:完全', max: 3 },
+  { key: '5a', label: '5a 上肢運動 右', hint: '0:保持 1-4:落下程度', max: 4 },
+  { key: '5b', label: '5b 上肢運動 左', hint: '0:保持 1-4:落下程度', max: 4 },
+  { key: '6a', label: '6a 下肢運動 右', hint: '0:保持 1-4:落下程度', max: 4 },
+  { key: '6b', label: '6b 下肢運動 左', hint: '0:保持 1-4:落下程度', max: 4 },
+  { key: '7', label: '7 運動失調', hint: '0:なし 1:1肢 2:2肢', max: 2 },
+  { key: '8', label: '8 感覚', hint: '0:正常 1:軽度低下 2:重度低下', max: 2 },
+  { key: '9', label: '9 言語', hint: '0:正常 1:軽度 2:重度 3:全失語', max: 3 },
+  { key: '10', label: '10 構音障害', hint: '0:正常 1:軽度 2:重度', max: 2 },
+  { key: '11', label: '11 消去/注意障害', hint: '0:なし 1:軽度 2:重度', max: 2 }
+];
+
+const STORAGE_KEY = 'gairai_iphone_v21';
+function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+function load() {
+  const d = localStorage.getItem(STORAGE_KEY);
+  if (d) { 
+    try { 
+      Object.assign(state, JSON.parse(d));
+      // 古い形式のvitalsを新しい配列形式にマイグレーション
+      if (state.vitals && !Array.isArray(state.vitals) && state.vitals.sbp !== undefined) {
+        const oldVital = state.vitals;
+        state.vitals = [{
+          time: '',
+          sbp: oldVital.sbp || 120,
+          dbp: oldVital.dbp || 80,
+          hr: oldVital.hr || 72,
+          rr: oldVital.rr || 16,
+          spo2: oldVital.spo2 || 98,
+          bt: oldVital.bt || 36.6,
+          gcs: oldVital.gcs || { e: 4, v: 5, m: 6 }
+        }];
+      }
+    } catch (e) {} 
+  }
+}
+
+function switchTab(tab) {
+  $$('.tab-content').forEach(el => el.classList.remove('active'));
+  $$('.tab-bar-item').forEach(el => el.classList.remove('active'));
+  $(`.tab-content[data-tab="${tab}"]`).classList.add('active');
+  $(`.tab-bar-item[data-tab="${tab}"]`).classList.add('active');
+  if (tab === 'output') renderOutput();
+}
+$$('.tab-bar-item').forEach(el => { el.addEventListener('click', () => switchTab(el.dataset.tab)); });
+
+function switchExamTab(exam) {
+  state.examTab = exam;
+  $$('.exam-tab').forEach(el => el.classList.toggle('active', el.dataset.exam === exam));
+  $$('.exam-pane').forEach(el => el.classList.toggle('active', el.dataset.pane === exam));
+  save();
+}
+$$('.exam-tab').forEach(el => { el.addEventListener('click', () => switchExamTab(el.dataset.exam)); });
+
+// 入院後経過/方針切替
+$$('.toggle-group .toggle-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    $$('.toggle-group .toggle-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.activePlan = btn.dataset.plan;
+    $$('.plan-section').forEach(s => s.classList.remove('active'));
+    $(`#${btn.dataset.plan}Section`).classList.add('active');
+    save();
+  });
+});
+
+function initVitals() {
+  // 初期バイタルがなければ1つ追加
+  if (!state.vitals || state.vitals.length === 0) {
+    addVital();
+  } else {
+    renderVitals();
+  }
+  
+  $('#addVitalBtn').addEventListener('click', addVital);
+}
+
+function addVital() {
+  const now = new Date();
+  const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  
+  let newVital;
+  if (state.vitals.length > 0) {
+    // 直前のバイタルをコピー
+    const prev = state.vitals[state.vitals.length - 1];
+    newVital = {
+      time,
+      sbp: prev.sbp,
+      dbp: prev.dbp,
+      hr: prev.hr,
+      rr: prev.rr,
+      spo2: prev.spo2,
+      bt: prev.bt,
+      gcs: { e: prev.gcs.e, v: prev.gcs.v, m: prev.gcs.m }
+    };
+  } else {
+    newVital = { time, sbp: 120, dbp: 80, hr: 72, rr: 16, spo2: 98, bt: 36.6, gcs: { e: 4, v: 5, m: 6 } };
+  }
+  
+  state.vitals.push(newVital);
+  renderVitals();
+  save();
+}
+
+function removeVital(idx) {
+  if (state.vitals.length <= 1) {
+    alert('最低1つのバイタルが必要です');
+    return;
+  }
+  if (confirm('このバイタルを削除しますか？')) {
+    state.vitals.splice(idx, 1);
+    renderVitals();
+    save();
+  }
+}
+
+function setVitalNow(idx) {
+  const now = new Date();
+  state.vitals[idx].time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  renderVitals();
+  save();
+}
+
+function renderVitals() {
+  const container = $('#vitalsContainer');
+  container.innerHTML = '';
+  
+  state.vitals.forEach((v, idx) => {
+    const card = document.createElement('div');
+    card.className = 'vital-card';
+    card.style.cssText = 'border:1px solid var(--line);border-radius:10px;margin-bottom:10px;overflow:hidden;';
+    
+    const gcsSum = v.gcs.v === 'T' ? `${v.gcs.e + v.gcs.m}T` : (v.gcs.e + v.gcs.v + v.gcs.m);
+    
+    card.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:#f9fafb;border-bottom:1px solid var(--line);">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-weight:600;font-size:14px;">#${idx + 1}</span>
+          <input type="time" value="${v.time}" style="width:100px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;font-size:14px;" data-idx="${idx}" data-field="time">
+          <button class="btn btn-sm btn-outline" onclick="setVitalNow(${idx})" style="padding:6px 10px;min-height:32px;">Now</button>
+        </div>
+        <button class="btn btn-sm btn-danger" onclick="removeVital(${idx})" style="padding:6px 10px;min-height:32px;">削除</button>
+      </div>
+      <div style="padding:12px;">
+        <div class="vital-grid">
+          <b>BP</b>
+          <div class="vital-row">
+            <select data-idx="${idx}" data-field="sbp" style="width:80px;"></select><span class="unit">/</span>
+            <select data-idx="${idx}" data-field="dbp" style="width:70px;"></select><span class="unit">mmHg</span>
+          </div>
+          <b>HR</b>
+          <div class="vital-row">
+            <select data-idx="${idx}" data-field="hr" style="width:80px;"></select><span class="unit">bpm</span>
+          </div>
+          <b>RR</b>
+          <div class="vital-row">
+            <select data-idx="${idx}" data-field="rr" style="width:70px;"></select><span class="unit">/min</span>
+          </div>
+          <b>SpO₂</b>
+          <div class="vital-row">
+            <select data-idx="${idx}" data-field="spo2" style="width:70px;"></select><span class="unit">%</span>
+          </div>
+          <b>BT</b>
+          <div class="vital-row">
+            <select data-idx="${idx}" data-field="bt" style="width:80px;"></select><span class="unit">℃</span>
+          </div>
+          <b>GCS</b>
+          <div class="vital-row">
+            <span class="unit">E</span><select data-idx="${idx}" data-field="gcsE" style="width:50px;"></select>
+            <span class="unit">V</span><select data-idx="${idx}" data-field="gcsV" style="width:50px;"></select>
+            <span class="unit">M</span><select data-idx="${idx}" data-field="gcsM" style="width:50px;"></select>
+            <span class="badge">${gcsSum}</span>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    container.appendChild(card);
+    
+    // セレクトボックスにオプションを設定
+    const fillSelect = (field, from, to, step = 1) => {
+      const sel = card.querySelector(`select[data-field="${field}"]`);
+      for (let i = from; i <= to; i += step) {
+        const val = step < 1 ? i.toFixed(1) : String(i);
+        sel.appendChild(new Option(val, val));
+      }
+    };
+    
+    fillSelect('sbp', 0, 300);
+    fillSelect('dbp', 0, 200);
+    fillSelect('hr', 0, 250);
+    fillSelect('rr', 0, 60);
+    fillSelect('spo2', 0, 100);
+    fillSelect('bt', 30, 42, 0.1);
+    
+    const gcsE = card.querySelector('select[data-field="gcsE"]');
+    [4, 3, 2, 1].forEach(n => gcsE.appendChild(new Option(n, n)));
+    
+    const gcsV = card.querySelector('select[data-field="gcsV"]');
+    ['5', '4', '3', '2', '1', 'T'].forEach(n => gcsV.appendChild(new Option(n, n)));
+    
+    const gcsM = card.querySelector('select[data-field="gcsM"]');
+    [6, 5, 4, 3, 2, 1].forEach(n => gcsM.appendChild(new Option(n, n)));
+    
+    // 値を設定
+    card.querySelector('select[data-field="sbp"]').value = v.sbp;
+    card.querySelector('select[data-field="dbp"]').value = v.dbp;
+    card.querySelector('select[data-field="hr"]').value = v.hr;
+    card.querySelector('select[data-field="rr"]').value = v.rr;
+    card.querySelector('select[data-field="spo2"]').value = v.spo2;
+    card.querySelector('select[data-field="bt"]').value = v.bt.toFixed ? v.bt.toFixed(1) : v.bt;
+    card.querySelector('select[data-field="gcsE"]').value = v.gcs.e;
+    card.querySelector('select[data-field="gcsV"]').value = v.gcs.v === 'T' ? 'T' : v.gcs.v;
+    card.querySelector('select[data-field="gcsM"]').value = v.gcs.m;
+    
+    // イベントリスナー
+    card.querySelector('input[data-field="time"]').addEventListener('change', (e) => {
+      state.vitals[idx].time = e.target.value;
+      save();
+    });
+    
+    ['sbp', 'dbp', 'hr', 'rr', 'spo2'].forEach(field => {
+      card.querySelector(`select[data-field="${field}"]`).addEventListener('change', (e) => {
+        state.vitals[idx][field] = Number(e.target.value);
+        save();
+      });
+    });
+    
+    card.querySelector('select[data-field="bt"]').addEventListener('change', (e) => {
+      state.vitals[idx].bt = Number(e.target.value);
+      save();
+    });
+    
+    ['gcsE', 'gcsV', 'gcsM'].forEach(field => {
+      card.querySelector(`select[data-field="${field}"]`).addEventListener('change', (e) => {
+        const gE = Number(card.querySelector('select[data-field="gcsE"]').value);
+        const gV = card.querySelector('select[data-field="gcsV"]').value;
+        const gM = Number(card.querySelector('select[data-field="gcsM"]').value);
+        state.vitals[idx].gcs = { e: gE, v: gV === 'T' ? 'T' : Number(gV), m: gM };
+        renderVitals();
+        save();
+      });
+    });
+  });
+}
+
+function vitalText() {
+  if (!state.vitals || state.vitals.length === 0) return '（未入力）';
+  
+  return state.vitals.map((v, idx) => {
+    const g = v.gcs;
+    const gTxt = g.v === 'T' ? `E${g.e}VTM${g.m}` : `E${g.e}V${g.v}M${g.m}(${g.e + g.v + g.m})`;
+    const timeStr = v.time ? `${v.time} ` : '';
+    return `${timeStr}BP ${v.sbp}/${v.dbp}, HR ${v.hr}, RR ${v.rr}, SpO₂ ${v.spo2}%, BT ${typeof v.bt === 'number' ? v.bt.toFixed(1) : v.bt}℃, GCS ${gTxt}`;
+  }).join('\n');
+}
+
+function mkChip(label, mode) {
+  const el = document.createElement('span');
+  el.className = 'chip';
+  el.textContent = label;
+  el.dataset.state = state.chips[label] || '';
+  el.addEventListener('click', () => {
+    const cur = el.dataset.state || '';
+    let next = '';
+    if (mode === 'normal') { next = cur === 'on' ? '' : 'on'; }
+    else { next = cur === '' ? '+' : (cur === '+' ? '-' : ''); }
+    el.dataset.state = next;
+    if (next) state.chips[label] = next;
+    else delete state.chips[label];
+    save();
+  });
+  return el;
+}
+
+function mountChips() {
+  Object.entries(GEN_GROUPS).forEach(([key, def]) => {
+    const box = $(`#gen-${key}`);
+    box.innerHTML = '';
+    (def.normal || []).forEach(lbl => box.appendChild(mkChip(lbl, 'normal')));
+    (def.abn || []).forEach(lbl => box.appendChild(mkChip(lbl, 'abn')));
+  });
+  Object.entries(TRA_GROUPS).forEach(([key, arr]) => {
+    const box = $(`#tra-${key}`);
+    box.innerHTML = '';
+    arr.forEach(lbl => box.appendChild(mkChip(lbl, 'abn')));
+  });
+  const cnBox = $('#str-cn');
+  cnBox.innerHTML = '';
+  STR_CNs.forEach(lbl => cnBox.appendChild(mkChip(lbl, 'abn')));
+  const higherBox = $('#str-higher');
+  higherBox.innerHTML = '';
+  STR_HIGHER.forEach(lbl => higherBox.appendChild(mkChip(lbl, 'abn')));
+  Object.entries(CPA_GROUPS).forEach(([key, arr]) => {
+    const box = $(`#cpa-${key}`);
+    box.innerHTML = '';
+    arr.forEach(lbl => box.appendChild(mkChip(lbl, 'abn')));
+  });
+}
+
+function initStroke() {
+  const pupilOpts = [''];
+  for (let i = 10; i <= 90; i += 5) pupilOpts.push((i / 10).toFixed(1));
+  ['#pupilL', '#pupilR'].forEach(id => {
+    const sel = $(id);
+    sel.innerHTML = '';
+    pupilOpts.forEach(v => sel.appendChild(new Option(v, v)));
+    sel.value = state.stroke[id.slice(1).toLowerCase()] || '';
+    sel.addEventListener('change', () => { state.stroke[id.slice(1).toLowerCase()] = sel.value; save(); });
+  });
+  
+  const mmtOpts = ['', '0', '1', '2', '3', '4', '5'];
+  ['#mmtRU', '#mmtRL', '#mmtLU', '#mmtLL'].forEach(id => {
+    const sel = $(id);
+    sel.innerHTML = '';
+    mmtOpts.forEach(v => sel.appendChild(new Option(v, v)));
+    const key = id.slice(4).toLowerCase();
+    sel.value = state.stroke.mmt[key] || '';
+    sel.addEventListener('change', () => { state.stroke.mmt[key] = sel.value; save(); });
+  });
+  
+  ['#plrL', '#plrR', '#gaze', '#nyst', '#btr', '#ptr'].forEach(id => {
+    const sel = $(id);
+    const key = id.slice(1);
+    sel.value = state.stroke[key] || '';
+    sel.addEventListener('change', () => { state.stroke[key] = sel.value; save(); });
+  });
+  
+  $('#babinski').checked = state.stroke.babinski;
+  $('#chaddock').checked = state.stroke.chaddock;
+  $('#babinski').addEventListener('change', () => { state.stroke.babinski = $('#babinski').checked; save(); });
+  $('#chaddock').addEventListener('change', () => { state.stroke.chaddock = $('#chaddock').checked; save(); });
+  
+  initNIHSS();
+}
+
+function initNIHSS() {
+  const body = $('#nihssBody');
+  body.innerHTML = '';
+  NIHSS_ITEMS.forEach(item => {
+    const row = document.createElement('div');
+    row.className = 'nih-row';
+    row.innerHTML = `
+      <b>${item.label}</b>
+      <div class="hint">${item.hint}</div>
+      <select data-nih="${item.key}">
+        ${Array.from({ length: item.max + 1 }, (_, i) => `<option value="${i}">${i}</option>`).join('')}
+      </select>
+    `;
+    body.appendChild(row);
+  });
+  
+  $$('[data-nih]').forEach(sel => {
+    const key = sel.dataset.nih;
+    sel.value = state.stroke.nih[key] || 0;
+    sel.addEventListener('change', () => { state.stroke.nih[key] = Number(sel.value); updateNIHSS(); save(); });
+  });
+  
+  const memo = document.createElement('div');
+  memo.className = 'form-row mt-2';
+  memo.innerHTML = `<label>NIHSSメモ</label><textarea id="nihMemo" rows="2" placeholder="評価メモ"></textarea>`;
+  body.appendChild(memo);
+  $('#nihMemo').value = state.stroke.nihMemo || '';
+  $('#nihMemo').addEventListener('input', () => { state.stroke.nihMemo = $('#nihMemo').value; save(); });
+  
+  updateNIHSS();
+}
+
+function updateNIHSS() {
+  let sum = 0;
+  NIHSS_ITEMS.forEach(item => { sum += Number(state.stroke.nih[item.key] || 0); });
+  $('#nihSum').textContent = `合計 ${sum}`;
+}
+
+function bindMemos() {
+  ['head', 'resp', 'card', 'abd', 'limb', 'neuro'].forEach(key => {
+    const el = $(`#memo-gen-${key}`);
+    el.value = state.memos.general[key] || '';
+    el.addEventListener('input', () => { state.memos.general[key] = el.value; save(); });
+  });
+  ['head', 'neck', 'chest', 'abd', 'pelvis', 'limb'].forEach(key => {
+    const el = $(`#memo-tra-${key}`);
+    el.value = state.memos.trauma[key] || '';
+    el.addEventListener('input', () => { state.memos.trauma[key] = el.value; save(); });
+  });
+  ['ru', 'rl', 'lu', 'll'].forEach(key => {
+    const el = $(`#tra-${key}`);
+    el.value = state.trauma[key] || '';
+    el.addEventListener('input', () => { state.trauma[key] = el.value; save(); });
+  });
+  ['cn', 'eye', 'motor', 'reflex', 'higher'].forEach(key => {
+    const el = $(`#memo-str-${key}`);
+    el.value = state.memos.stroke[key] || '';
+    el.addEventListener('input', () => { state.memos.stroke[key] = el.value; save(); });
+  });
+  ['body', 'head', 'trunk'].forEach(key => {
+    const el = $(`#memo-cpa-${key}`);
+    el.value = state.memos.cpa[key] || '';
+    el.addEventListener('input', () => { state.memos.cpa[key] = el.value; save(); });
+  });
+  $('#examFree').value = state.examFree || '';
+  $('#examFree').addEventListener('input', () => { state.examFree = $('#examFree').value; save(); });
+}
+
+function initLabs() {
+  const catSel = $('#labCat');
+  const itemSel = $('#labItem');
+  
+  function fillItems() {
+    const cat = catSel.value;
+    itemSel.innerHTML = '';
+    LABS[cat].items.forEach(([k]) => itemSel.appendChild(new Option(k, k)));
+  }
+  
+  catSel.addEventListener('change', () => { fillItems(); renderLabEdit(); });
+  
+  $('#labAdd').addEventListener('click', () => {
+    const cat = catSel.value;
+    const item = itemSel.value;
+    if (!item) return;
+    const unit = (LABS[cat].items.find(x => x[0] === item) || ['', ''])[1];
+    if (!state.labs[cat].some(x => x.item === item)) {
+      const def = (NORMALS[cat] || {})[item] || '';
+      state.labs[cat].push({ item, unit, val: def });
+    }
+    renderLabEdit();
+    save();
+  });
+  
+  const addSet = (cat) => {
+    LABS[cat].items.forEach(([k, u]) => {
+      if (!state.labs[cat].some(x => x.item === k)) {
+        state.labs[cat].push({ item: k, unit: u, val: (NORMALS[cat] || {})[k] || '' });
+      }
+    });
+    catSel.value = cat;
+    fillItems();
+    renderLabEdit();
+    save();
+  };
+  
+  // 一式セット（血算+生化+凝固+血ガス+BNP+HbA1c+尿定性+沈渣）
+  $('#labSetAll').addEventListener('click', () => {
+    ['cbc', 'chem', 'coag', 'gas', 'urine', 'sediment'].forEach(cat => {
+      LABS[cat].items.forEach(([k, u]) => {
+        if (!state.labs[cat].some(x => x.item === k)) {
+          state.labs[cat].push({ item: k, unit: u, val: (NORMALS[cat] || {})[k] || '' });
+        }
+      });
+    });
+    // BNP, HbA1c追加
+    if (!state.labs.sugar.some(x => x.item === 'BNP')) {
+      state.labs.sugar.push({ item: 'BNP', unit: 'pg/mL', val: '' });
+    }
+    if (!state.labs.sugar.some(x => x.item === 'HbA1c')) {
+      state.labs.sugar.push({ item: 'HbA1c', unit: '%', val: '' });
+    }
+    renderLabEdit();
+    save();
+  });
+  
+  $('#labSetCBC').addEventListener('click', () => addSet('cbc'));
+  $('#labSetChem').addEventListener('click', () => addSet('chem'));
+  $('#labSetCoag').addEventListener('click', () => addSet('coag'));
+  $('#labSetGas').addEventListener('click', () => addSet('gas'));
+  $('#labSetUrine').addEventListener('click', () => { addSet('urine'); addSet('sediment'); });
+  
+  fillItems();
+  renderLabEdit();
+  
+  $('#labFree').value = state.labFree || '';
+  $('#labFree').addEventListener('input', () => { state.labFree = $('#labFree').value; save(); });
+}
+
+function renderLabEdit() {
+  const cat = $('#labCat').value;
+  const area = $('#labEditArea');
+  area.innerHTML = '';
+  
+  if (!state.labs[cat].length) {
+    area.innerHTML = '<p class="small">セットボタンまたは追加で項目を追加</p>';
+    return;
+  }
+  
+  const pills = document.createElement('div');
+  pills.className = 'lab-pills';
+  
+  state.labs[cat].forEach((rec, idx) => {
+    const pill = document.createElement('div');
+    pill.className = 'lab-pill';
+    pill.innerHTML = `
+      <label>${rec.item}</label>
+      <input type="text" inputmode="decimal" value="${rec.val || ''}" placeholder="値">
+      <span class="unit">${rec.unit}</span>
+      <button class="del">×</button>
+    `;
+    const inp = pill.querySelector('input');
+    inp.addEventListener('input', () => { rec.val = inp.value; save(); });
+    inp.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const allInputs = [...area.querySelectorAll('.lab-pill input')];
+        const i = allInputs.indexOf(inp);
+        if (allInputs[i + 1]) { allInputs[i + 1].focus(); allInputs[i + 1].select(); }
+      }
+    });
+    pill.querySelector('.del').addEventListener('click', () => { state.labs[cat].splice(idx, 1); renderLabEdit(); save(); });
+    pills.appendChild(pill);
+  });
+  
+  area.appendChild(pills);
+}
+
+// テキスト貼り付けから検査値を読み取る機能
+let ocrResults = {}; // 読み取り結果を一時保存
+
+function initLabOCR() {
+  const pasteBtn = $('#labPasteBtn');
+  const pasteArea = $('#pasteArea');
+  const pasteText = $('#labPasteText');
+  const parseBtn = $('#labParseBtn');
+  const cancelBtn = $('#labPasteCancelBtn');
+  const status = $('#pasteStatus');
+  
+  // 貼り付けボタン
+  pasteBtn.addEventListener('click', () => {
+    pasteArea.style.display = pasteArea.style.display === 'none' ? 'block' : 'none';
+    if (pasteArea.style.display === 'block') {
+      pasteText.focus();
+    }
+  });
+  
+  // キャンセルボタン
+  cancelBtn.addEventListener('click', () => {
+    pasteArea.style.display = 'none';
+    pasteText.value = '';
+    status.style.display = 'none';
+  });
+  
+  // 解析ボタン
+  parseBtn.addEventListener('click', () => {
+    const text = pasteText.value.trim();
+    if (!text) {
+      status.style.display = 'block';
+      status.innerHTML = '⚠️ テキストを入力してください';
+      status.style.color = '#f59e0b';
+      return;
+    }
+    
+    const labData = parseLabText(text);
+    
+    if (labData && Object.keys(labData).length > 0) {
+      ocrResults = labData;
+      renderOcrResults();
+      status.style.display = 'block';
+      status.innerHTML = `✅ ${Object.keys(labData).length}項目を読み取りました。内容を確認して「検査値に反映」を押してください。`;
+      status.style.color = '#22c55e';
+      pasteArea.style.display = 'none';
+    } else {
+      status.style.display = 'block';
+      status.innerHTML = '⚠️ 検査値を読み取れませんでした。形式を確認してください。';
+      status.style.color = '#f59e0b';
+    }
+  });
+  
+  // クリアボタン
+  $('#ocrClearBtn').addEventListener('click', () => {
+    ocrResults = {};
+    $('#ocrResultArea').style.display = 'none';
+    status.style.display = 'none';
+  });
+  
+  // 検査値に反映ボタン
+  $('#ocrApplyBtn').addEventListener('click', () => {
+    if (Object.keys(ocrResults).length > 0) {
+      applyLabData(ocrResults);
+      status.style.display = 'block';
+      status.innerHTML = '✅ 検査値に反映しました';
+      status.style.color = '#22c55e';
+    }
+  });
+}
+
+// Gemini API 設定とAPI呼び出し
+function initGeminiAPI() {
+  const GEMINI_API_KEY_STORAGE = 'gemini_api_key';
+  
+  // APIキー取得
+  function getApiKey() {
+    return localStorage.getItem(GEMINI_API_KEY_STORAGE) || '';
+  }
+  
+  // APIキー保存
+  function saveApiKey(key) {
+    localStorage.setItem(GEMINI_API_KEY_STORAGE, key);
+  }
+  
+  // モーダル操作
+  const modal = $('#geminiModal');
+  const settingsBtn = $('#geminiSettingsBtn');
+  const closeBtn = $('#geminiModalClose');
+  const cancelBtn = $('#geminiCancelBtn');
+  const saveBtn = $('#geminiSaveBtn');
+  const apiKeyInput = $('#geminiApiKey');
+  const statusDiv = $('#geminiStatus');
+  
+  if (!modal || !settingsBtn || !closeBtn || !cancelBtn || !saveBtn || !apiKeyInput || !statusDiv) {
+    console.error('Gemini modal elements not found');
+    return;
+  }
+  
+  settingsBtn.addEventListener('click', () => {
+    console.log('Settings button clicked');
+    apiKeyInput.value = getApiKey();
+    modal.style.display = 'block';
+    statusDiv.style.display = 'none';
+  });
+  
+  closeBtn.addEventListener('click', () => {
+    modal.style.display = 'none';
+  });
+  
+  cancelBtn.addEventListener('click', () => {
+    modal.style.display = 'none';
+  });
+  
+  saveBtn.addEventListener('click', () => {
+    const key = apiKeyInput.value.trim();
+    if (!key) {
+      statusDiv.style.display = 'block';
+      statusDiv.style.color = '#ef4444';
+      statusDiv.textContent = '⚠️ APIキーを入力してください';
+      return;
+    }
+    saveApiKey(key);
+    statusDiv.style.display = 'block';
+    statusDiv.style.color = '#22c55e';
+    statusDiv.textContent = '✅ APIキーを保存しました';
+    setTimeout(() => {
+      modal.style.display = 'none';
+    }, 1500);
+  });
+  
+  // 画像読み取り
+  const imageBtn = $('#geminiImageBtn');
+  const imageInput = $('#geminiImageInput');
+  const pasteStatus = $('#pasteStatus');
+  
+  if (!imageBtn || !imageInput || !pasteStatus) {
+    console.error('Gemini image elements not found:', {
+      imageBtn: !!imageBtn,
+      imageInput: !!imageInput,
+      pasteStatus: !!pasteStatus
+    });
+    return;
+  }
+  
+  console.log('Gemini API initialized successfully');
+  
+  imageBtn.addEventListener('click', () => {
+    console.log('Image button clicked');
+    const apiKey = getApiKey();
+    if (!apiKey) {
+      pasteStatus.style.display = 'block';
+      pasteStatus.textContent = '⚠️ Gemini APIキーが設定されていません。「⚙️ API設定」から設定してください。';
+      pasteStatus.style.color = '#f59e0b';
+      return;
+    }
+    console.log('API key found, opening file picker');
+    imageInput.click();
+  });
+  
+  imageInput.addEventListener('change', async (e) => {
+    console.log('File input changed');
+    const file = e.target.files && e.target.files[0];
+    if (!file) {
+      console.log('No file selected');
+      return;
+    }
+    
+    console.log('File selected:', file.name, file.type, file.size);
+    
+    const apiKey = getApiKey();
+    if (!apiKey) {
+      alert('APIキーが設定されていません');
+      return;
+    }
+    
+    pasteStatus.style.display = 'block';
+    pasteStatus.textContent = '📷 画像を解析中...';
+    pasteStatus.style.color = '#2563eb';
+    
+    try {
+      console.log('Converting file to base64...');
+      // 画像をBase64に変換
+      const base64 = await fileToBase64(file);
+      const base64Data = base64.split(',')[1]; // data:image/jpeg;base64, を除去
+      console.log('Base64 conversion complete, length:', base64Data.length);
+      
+      console.log('Calling Gemini API...');
+      // Gemini API 呼び出し
+      const result = await callGeminiAPI(apiKey, base64Data);
+      console.log('API result:', result);
+      
+      if (result && result.items && result.items.length > 0) {
+        ocrResults = {};
+        result.items.forEach(item => {
+          if (item.key && item.value !== undefined) {
+            ocrResults[item.key] = {
+              value: item.value,
+              unit: item.unit || ''
+            };
+          }
+        });
+        
+        console.log('OCR results:', ocrResults);
+        renderOcrResults();
+        pasteStatus.style.display = 'block';
+        pasteStatus.textContent = `✅ ${result.items.length}項目を読み取りました`;
+        pasteStatus.style.color = '#22c55e';
+      } else {
+        console.log('No items found in result');
+        pasteStatus.style.display = 'block';
+        pasteStatus.textContent = '⚠️ 検査値を読み取れませんでした';
+        pasteStatus.style.color = '#f59e0b';
+      }
+    } catch (err) {
+      console.error('Error during image processing:', err);
+      pasteStatus.style.display = 'block';
+      pasteStatus.textContent = '❌ エラー: ' + (err.message || '不明なエラー');
+      pasteStatus.style.color = '#ef4444';
+    } finally {
+      imageInput.value = '';
+    }
+  });
+  
+  // ファイルをBase64に変換
+  function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+  
+  // Gemini API 呼び出し
+  async function callGeminiAPI(apiKey, imageBase64) {
+    const LABEL_MAP = {
+      'γGTP': 'γ-GTP', 'γ-GTP': 'γ-GTP', 'Tbil': 'T-bil', 'T-Bil': 'T-bil',
+      'Dbil': 'D-bil', 'D-Bil': 'D-bil', 'LD': 'LDH', 'GLU': 'Glu', 'AMY': 'Amy',
+      'LIPA': 'Lip', 'Crn': 'Cr', '白血球': 'WBC', '赤血球': 'RBC',
+      '血色素': 'Hb', 'ヘモグロビン': 'Hb', 'ヘマトクリット': 'Ht', '血小板': 'Plt',
+      'Dダイマー': 'D-dimer', '比重': '比重', '潜血': '潜血', '蛋白': '蛋白'
+    };
+    
+    const normalizeLabel = (k) => LABEL_MAP[String(k || '').replace(/\s+/g, '')] || String(k || '').trim();
+    
+    const prompt = `医療検査票の読み取り。次の厳格ルールで、JSON形式で出力:
+- 対象はラボ項目のみ（バイタルは除外）
+- ラベルは一般略号優先（例: 白血球→WBC, 血色素→Hb, クレアチニン→Cr）
+- 値は数値のみ。<, >, ≦, 以上/未満 等は除去。読めない/推定不可はスキップ
+- 単位は読めたときだけ入れる（mg/dL, IU/L, g/dL, % など）
+- 同一項目が複数印字なら最新行らしいものを採用
+
+出力形式（この形式に厳密に従うこと）:
+{
+  "items": [
+    {"key": "WBC", "value": 7500, "unit": "/μL"},
+    {"key": "Hb", "value": 13.5, "unit": "g/dL"}
+  ]
+}`;
+    
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${apiKey}`;
+    console.log('API URL:', url.replace(apiKey, 'API_KEY_HIDDEN'));
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{
+          parts: [
+            {
+              inline_data: {
+                mime_type: 'image/jpeg',
+                data: imageBase64
+              }
+            },
+            { text: prompt }
+          ]
+        }]
+      })
+    });
+    
+    console.log('API response status:', response.status);
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('API error:', errorData);
+      throw new Error(errorData.error?.message || `API error: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    console.log('API response data:', data);
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    console.log('Extracted text:', text);
+    
+    // JSONを抽出（マークダウンのコードブロックを除去）
+    let jsonText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    
+    try {
+      const parsed = JSON.parse(jsonText);
+      
+      // ラベルを正規化
+      if (parsed.items && Array.isArray(parsed.items)) {
+        parsed.items = parsed.items.map(item => ({
+          ...item,
+          key: normalizeLabel(item.key)
+        }));
+      }
+      
+      return parsed;
+    } catch (e) {
+      console.error('JSON parse error:', e, 'Text:', jsonText);
+      throw new Error('APIからの応答を解析できませんでした');
+    }
+  }
+}
+
+// テキストから検査値を抽出（iPhoneライブテキスト対応）
+function parseLabText(text) {
+  const results = {};
+  
+  // 全角数字を半角に変換
+  text = text.replace(/[０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0));
+  text = text.replace(/．/g, '.');
+  text = text.replace(/　/g, ' ');
+  
+  // 検査項目名 → 標準名のマッピング
+  const itemMap = {
+    // 生化学
+    '総タンパク': 'TP', '総蛋白': 'TP',
+    'アルブミン': 'Alb',
+    '総ビリルビン': 'T-bil',
+    '直接ビリルビン': 'D-bil',
+    'AST': 'AST', 'GOT': 'AST', 'AST(GOT)': 'AST', 'AST (GOT)': 'AST',
+    'ALT': 'ALT', 'GPT': 'ALT', 'ALT(GPT)': 'ALT', 'ALT (GPT)': 'ALT',
+    'ALP': 'ALP',
+    'γGTP': 'γ-GTP', 'γ-GTP': 'γ-GTP', 'yGTP': 'γ-GTP', 'Y-GTP': 'γ-GTP',
+    'LDH': 'LDH', 'LD': 'LDH',
+    'CK': 'CK', 'CPK': 'CK',
+    '尿素窒素': 'BUN', 'BUN': 'BUN',
+    'クレアチニン': 'Cr', 'Cr': 'Cr', 'CRE': 'Cr',
+    '推算糸球体濾過量': 'eGFR', '推算糸球体濾過値': 'eGFR', 'eGFR': 'eGFR',
+    'ナトリウム': 'Na', 'Na': 'Na',
+    'カリウム': 'K', 'K': 'K',
+    'クロール': 'Cl', 'Cl': 'Cl',
+    'カルシウム': 'Ca', 'Ca': 'Ca',
+    '無機リン': 'IP', 'リン': 'IP', 'IP': 'IP',
+    'マグネシウム': 'Mg', 'Mg': 'Mg',
+    '尿酸': 'UA', 'UA': 'UA',
+    '血糖': 'Glu', 'グルコース': 'Glu', 'Glu': 'Glu', 'BS': 'Glu',
+    'CRP': 'CRP',
+    'アミラーゼ': 'Amy', 'アミラーゼ(血中)': 'Amy', 'アミラーゼ（血中）': 'Amy',
+    'リパーゼ': 'Lip',
+    '血清鉄': 'Fe', '鉄': 'Fe',
+    'フェリチン': 'Ferritin',
+    
+    // 脂質
+    '中性脂肪': 'TG', 'TG': 'TG',
+    '総コレステロール': 'T-CHO',
+    'HDLコレステロール': 'HDL-C', 'HDL-C': 'HDL-C', 'HDL': 'HDL-C',
+    'LDLコレステロール': 'LDL-C', 'LDL-C': 'LDL-C', 'LDL': 'LDL-C',
+    
+    // 血算
+    '白血球数': 'WBC', '白血球': 'WBC', 'WBC': 'WBC',
+    '赤血球数': 'RBC', '赤血球': 'RBC', 'RBC': 'RBC',
+    'ヘモグロビン': 'Hb', '血色素': 'Hb', 'Hb': 'Hb', 'HGB': 'Hb',
+    'ヘマトクリット': 'Ht', 'Ht': 'Ht', 'HCT': 'Ht',
+    '血小板数': 'Plt', '血小板': 'Plt', 'Plt': 'Plt', 'PLT': 'Plt',
+    '平均赤血球容積': 'MCV', 'MCV': 'MCV',
+    '平均赤血球Hb量': 'MCH', '平均赤血球血色素量': 'MCH', 'MCH': 'MCH',
+    '平均赤血球Hb濃度': 'MCHC', '平均赤血球血色素濃度': 'MCHC', 'MCHC': 'MCHC',
+    
+    // 凝固
+    'PT-INR': 'PT-INR', 'INR': 'PT-INR',
+    'PT%': 'PT%', 'PT': 'PT%',
+    'APTT': 'APTT', 'aPTT': 'APTT',
+    'Dダイマー': 'D-dimer', 'D-dimer': 'D-dimer',
+    'FDP': 'FDP',
+    'フィブリノゲン': 'Fib', 'Fib': 'Fib',
+    
+    // 糖尿病
+    'HbA1c': 'HbA1c', 'HbA1c(NGSP)': 'HbA1c', 'HbA1c（NGSP）': 'HbA1c',
+    'BNP': 'BNP',
+    'NT-proBNP': 'NT-proBNP',
+    
+    // 血液ガス
+    'pH': 'pH',
+    'pCO2': 'pCO2', 'PCO2': 'pCO2', 'PaCO2': 'pCO2',
+    'pO2': 'pO2', 'PO2': 'pO2', 'PaO2': 'pO2',
+    'HCO3-': 'HCO3-', 'HCO3': 'HCO3-',
+    'BE': 'BE',
+    '乳酸': 'Lac', 'Lac': 'Lac',
+    'SaO2': 'SaO2', 'SpO2': 'SaO2'
+  };
+  
+  const lines = text.split(/[\n\r]+/).map(l => l.trim()).filter(l => l);
+  console.log('Lines:', lines);
+  
+  // 方法1: 同じ行に項目名と数値がある場合（従来形式）
+  for (const line of lines) {
+    for (const [itemName, standardName] of Object.entries(itemMap)) {
+      if (results[standardName]) continue;
+      
+      if (line.includes(itemName)) {
+        // 行末の数値を取得
+        const match = line.match(/([0-9]+\.?[0-9]*)\s*[LHlh]?\s*$/);
+        if (match) {
+          const val = parseFloat(match[1]);
+          if (!isNaN(val) && val >= 0 && val < 100000) {
+            results[standardName] = match[1];
+            console.log(`Found (same line): ${standardName} = ${match[1]}`);
+          }
+        }
+      }
+    }
+  }
+  
+  // 方法2: iPhoneライブテキスト形式（項目名と数値が別の行）
+  // 「項目名の行」の次にある「数値のみの行」をペアにする
+  let pendingItem = null;
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    
+    // この行が項目名かチェック
+    let foundItem = null;
+    for (const [itemName, standardName] of Object.entries(itemMap)) {
+      if (line.includes(itemName) && !results[standardName]) {
+        foundItem = standardName;
+        break;
+      }
+    }
+    
+    if (foundItem) {
+      // この行自体に数値があるか？
+      const inlineMatch = line.match(/([0-9]+\.?[0-9]*)\s*[LHlh]?\s*$/);
+      if (inlineMatch && !line.match(/^[0-9]/)) {
+        // 行末に数値がある（項目名と同じ行）
+        const val = parseFloat(inlineMatch[1]);
+        if (!isNaN(val) && val >= 0 && val < 100000 && !results[foundItem]) {
+          results[foundItem] = inlineMatch[1];
+          console.log(`Found (inline): ${foundItem} = ${inlineMatch[1]}`);
+        }
+      } else {
+        // 次の行に数値があるかも
+        pendingItem = foundItem;
+      }
+    } else if (pendingItem) {
+      // 前の行が項目名で、この行が数値かチェック
+      const numMatch = line.match(/^([0-9]+\.?[0-9]*)\s*[LHlh]?\s*$/);
+      if (numMatch) {
+        const val = parseFloat(numMatch[1]);
+        if (!isNaN(val) && val >= 0 && val < 100000 && !results[pendingItem]) {
+          results[pendingItem] = numMatch[1];
+          console.log(`Found (next line): ${pendingItem} = ${numMatch[1]}`);
+        }
+      }
+      pendingItem = null;
+    }
+  }
+  
+  // 方法3: 数値の羅列から推測（最後の手段）
+  // 行番号付きで数値だけの行を見つける
+  const numberOnlyLines = [];
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].match(/^[0-9]+\.?[0-9]*$/)) {
+      numberOnlyLines.push({ index: i, value: lines[i] });
+    }
+  }
+  
+  console.log('Number only lines:', numberOnlyLines);
+  console.log('Results:', results);
+  
+  return results;
+}
+
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function renderOcrResults() {
+  const area = $('#ocrResultArea');
+  const list = $('#ocrResultList');
+  
+  if (Object.keys(ocrResults).length === 0) {
+    area.style.display = 'none';
+    return;
+  }
+  
+  area.style.display = 'block';
+  list.innerHTML = '';
+  
+  // カテゴリごとにグループ化して表示
+  const catNames = {
+    cbc: '血算',
+    chem: '生化学',
+    coag: '凝固',
+    sugar: '血糖・心不全',
+    gas: '血液ガス',
+    urine: '尿定性',
+    sediment: '尿沈渣',
+    tumor: '腫瘍マーカー',
+    endo: '内分泌',
+    urineBio: '尿生化',
+    csf: '髄液',
+    unknown: 'その他'
+  };
+  
+  // 項目名からカテゴリを判定するマッピング
+  const itemToCat = {};
+  Object.entries(LABS).forEach(([cat, def]) => {
+    def.items.forEach(([item, unit]) => {
+      itemToCat[item] = { cat, unit };
+      // 別名対応
+      if (item === 'γ-GTP') itemToCat['GGT'] = { cat, unit };
+      if (item === 'T-bil') itemToCat['TB'] = { cat, unit };
+      if (item === 'D-bil') itemToCat['DB'] = { cat, unit };
+      if (item === 'HCO3-') itemToCat['HCO3'] = { cat, unit };
+    });
+  });
+  
+  // カテゴリごとに分類
+  const grouped = {};
+  Object.entries(ocrResults).forEach(([key, valueObj]) => {
+    const mapping = itemToCat[key];
+    const cat = mapping ? mapping.cat : 'unknown';
+    if (!grouped[cat]) grouped[cat] = [];
+    
+    // valueObjは { value: 数値, unit: "単位" } の形式
+    const actualValue = typeof valueObj === 'object' ? valueObj.value : valueObj;
+    const actualUnit = typeof valueObj === 'object' && valueObj.unit ? valueObj.unit : (mapping ? mapping.unit : '');
+    
+    grouped[cat].push({ 
+      key, 
+      value: actualValue, 
+      unit: actualUnit 
+    });
+  });
+  
+  // カテゴリ順で表示
+  const catOrder = ['cbc', 'chem', 'coag', 'sugar', 'gas', 'urine', 'sediment', 'tumor', 'endo', 'urineBio', 'csf', 'unknown'];
+  
+  catOrder.forEach(cat => {
+    if (!grouped[cat] || grouped[cat].length === 0) return;
+    
+    // カテゴリヘッダー
+    const catHeader = document.createElement('div');
+    catHeader.style.cssText = 'width:100%;font-size:12px;font-weight:600;color:#7c3aed;margin-top:8px;margin-bottom:4px;';
+    catHeader.textContent = catNames[cat] || cat;
+    list.appendChild(catHeader);
+    
+    // 項目
+    grouped[cat].forEach(({ key, value, unit }) => {
+      const pill = document.createElement('div');
+      pill.className = 'lab-pill';
+      pill.style.background = '#fff';
+      pill.innerHTML = `
+        <label style="min-width:60px;">${key}</label>
+        <input type="text" inputmode="decimal" value="${value}" style="width:80px;" data-ocr-key="${key}">
+        <span class="unit">${unit}</span>
+        <button class="del" data-ocr-del="${key}">×</button>
+      `;
+      
+      // 値の編集
+      pill.querySelector('input').addEventListener('input', (e) => {
+        const newValue = e.target.value;
+        // オブジェクト構造を維持
+        if (typeof ocrResults[key] === 'object') {
+          ocrResults[key].value = newValue;
+        } else {
+          ocrResults[key] = { value: newValue, unit: unit };
+        }
+      });
+      
+      // 削除
+      pill.querySelector('.del').addEventListener('click', () => {
+        delete ocrResults[key];
+        renderOcrResults();
+      });
+      
+      list.appendChild(pill);
+    });
+  });
+}
+
+function applyLabData(labData) {
+  // 項目名からカテゴリを判定するマッピング
+  const itemToCat = {};
+  Object.entries(LABS).forEach(([cat, def]) => {
+    def.items.forEach(([item, unit]) => {
+      itemToCat[item] = { cat, unit };
+      // 別名対応
+      if (item === 'γ-GTP') itemToCat['GGT'] = { cat, unit };
+      if (item === 'T-bil') itemToCat['TB'] = { cat, unit };
+      if (item === 'D-bil') itemToCat['DB'] = { cat, unit };
+      if (item === 'HCO3-') itemToCat['HCO3'] = { cat, unit };
+    });
+  });
+  
+  let addedCount = 0;
+  
+  Object.entries(labData).forEach(([key, valueData]) => {
+    // 項目名の正規化
+    let normalizedKey = key.trim();
+    
+    // valueDataがオブジェクトの場合は value プロパティを取り出す
+    let actualValue = valueData;
+    if (typeof valueData === 'object' && valueData !== null && 'value' in valueData) {
+      actualValue = valueData.value;
+    }
+    
+    const mapping = itemToCat[normalizedKey];
+    if (mapping) {
+      const { cat, unit } = mapping;
+      
+      // 既存の項目を探す
+      let existing = state.labs[cat].find(x => x.item === normalizedKey || 
+        (normalizedKey === 'GGT' && x.item === 'γ-GTP') ||
+        (normalizedKey === 'TB' && x.item === 'T-bil') ||
+        (normalizedKey === 'DB' && x.item === 'D-bil') ||
+        (normalizedKey === 'HCO3' && x.item === 'HCO3-'));
+      
+      // 正規化された項目名を取得
+      let itemName = normalizedKey;
+      if (normalizedKey === 'GGT') itemName = 'γ-GTP';
+      if (normalizedKey === 'TB') itemName = 'T-bil';
+      if (normalizedKey === 'DB') itemName = 'D-bil';
+      if (normalizedKey === 'HCO3') itemName = 'HCO3-';
+      
+      if (existing) {
+        existing.val = String(actualValue);
+      } else {
+        state.labs[cat].push({ item: itemName, unit, val: String(actualValue) });
+      }
+      addedCount++;
+    }
+  });
+  
+  if (addedCount > 0) {
+    save();
+    renderLabEdit();
+  }
+  
+  return addedCount;
+}
+
+function initInfect() {
+  $('#covidType').value = state.infect.covid.type || '';
+  $('#covidRes').value = state.infect.covid.res || '';
+  $('#fluA').value = state.infect.flu.a || '';
+  $('#fluB').value = state.infect.flu.b || '';
+  
+  $('#covidType').addEventListener('change', () => { state.infect.covid.type = $('#covidType').value; save(); });
+  $('#covidRes').addEventListener('change', () => { state.infect.covid.res = $('#covidRes').value; save(); });
+  $('#fluA').addEventListener('change', () => { state.infect.flu.a = $('#fluA').value; save(); });
+  $('#fluB').addEventListener('change', () => { state.infect.flu.b = $('#fluB').value; save(); });
+  
+  $('#cultureAdd').addEventListener('click', () => { state.infect.cultures.push({ src: '', res: '', note: '' }); renderCultures(); save(); });
+  
+  renderCultures();
+}
+
+function renderCultures() {
+  const area = $('#cultureArea');
+  area.innerHTML = '';
+  
+  if (!state.infect.cultures.length) {
+    area.innerHTML = '<p class="small">培養を追加ボタンで追加</p>';
+    return;
+  }
+  
+  state.infect.cultures.forEach((c, i) => {
+    const entry = document.createElement('div');
+    entry.className = 'culture-entry';
+    entry.innerHTML = `
+      <div class="form-grid">
+        <div><label>検体</label><select class="cult-src"><option value="">選択</option><option>血液</option><option>尿</option><option>喀痰</option><option>便</option><option>髄液</option></select></div>
+        <div><label>結果</label><select class="cult-res"><option value="">-</option><option>陰性</option><option>陽性</option><option>結果未着</option></select></div>
+      </div>
+      <div class="form-row"><label>菌名/コメント</label><input class="cult-note" placeholder="菌名等"></div>
+      <button class="btn btn-sm btn-danger cult-del">削除</button>
+    `;
+    entry.querySelector('.cult-src').value = c.src || '';
+    entry.querySelector('.cult-res').value = c.res || '';
+    entry.querySelector('.cult-note').value = c.note || '';
+    
+    entry.querySelector('.cult-src').addEventListener('change', (e) => { c.src = e.target.value; save(); });
+    entry.querySelector('.cult-res').addEventListener('change', (e) => { c.res = e.target.value; save(); });
+    entry.querySelector('.cult-note').addEventListener('input', (e) => { c.note = e.target.value; save(); });
+    entry.querySelector('.cult-del').addEventListener('click', () => { state.infect.cultures.splice(i, 1); renderCultures(); save(); });
+    
+    area.appendChild(entry);
+  });
+}
+
+function initImaging() {
+  const imgKeys = ['cxr', 'ct', 'ctc', 'mri'];
+  const imgLabels = { cxr: '胸部XP', ct: 'CT', ctc: '造影CT', mri: 'MRI' };
+  
+  imgKeys.forEach(key => {
+    const cb = $(`#${key}On`);
+    cb.checked = state.imaging[key].on;
+    cb.addEventListener('change', () => { state.imaging[key].on = cb.checked; renderImgText(); save(); });
+  });
+  
+  $('#imgOtherOn').checked = state.imaging.other.on;
+  $('#imgOtherOn').addEventListener('change', () => { state.imaging.other.on = $('#imgOtherOn').checked; renderImgText(); save(); });
+  
+  renderImgText();
+}
+
+function renderImgText() {
+  const area = $('#imgTextArea');
+  area.innerHTML = '';
+  const imgKeys = ['cxr', 'ct', 'ctc', 'mri'];
+  const imgLabels = { cxr: '胸部XP', ct: 'CT', ctc: '造影CT', mri: 'MRI' };
+  
+  imgKeys.forEach(key => {
+    if (state.imaging[key].on) {
+      const row = document.createElement('div');
+      row.className = 'form-row mt-2';
+      row.innerHTML = `<label>${imgLabels[key]}所見</label><textarea rows="3" placeholder="所見を記載"></textarea>`;
+      const ta = row.querySelector('textarea');
+      ta.value = state.imaging[key].txt || '';
+      ta.addEventListener('input', () => { state.imaging[key].txt = ta.value; save(); });
+      area.appendChild(row);
+    }
+  });
+  
+  // その他画像
+  if (state.imaging.other.on) {
+    const otherRow = document.createElement('div');
+    otherRow.className = 'form-row mt-2';
+    otherRow.innerHTML = `
+      <label>その他画像 - 検査名</label>
+      <input type="text" id="imgOtherName" placeholder="検査名（例：下肢MRA）" style="margin-bottom:8px">
+      <label>所見</label>
+      <textarea rows="3" id="imgOtherTxt" placeholder="所見を記載"></textarea>
+    `;
+    area.appendChild(otherRow);
+    $('#imgOtherName').value = state.imaging.other.name || '';
+    $('#imgOtherTxt').value = state.imaging.other.txt || '';
+    $('#imgOtherName').addEventListener('input', () => { state.imaging.other.name = $('#imgOtherName').value; save(); });
+    $('#imgOtherTxt').addEventListener('input', () => { state.imaging.other.txt = $('#imgOtherTxt').value; save(); });
+  }
+}
+
+function initPhys() {
+  $('#ecgOn').checked = state.phys.ecg.on;
+  $('#eegOn').checked = state.phys.eeg.on;
+  $('#usOn').checked = state.phys.us.on;
+  $('#phyOtherOn').checked = state.phys.other.on;
+  
+  $('#ecgOn').addEventListener('change', () => { state.phys.ecg.on = $('#ecgOn').checked; renderPhyText(); save(); });
+  $('#eegOn').addEventListener('change', () => { state.phys.eeg.on = $('#eegOn').checked; renderPhyText(); save(); });
+  $('#usOn').addEventListener('change', () => { state.phys.us.on = $('#usOn').checked; renderPhyText(); save(); });
+  $('#phyOtherOn').addEventListener('change', () => { state.phys.other.on = $('#phyOtherOn').checked; renderPhyText(); save(); });
+  
+  renderPhyText();
+}
+
+function renderPhyText() {
+  const area = $('#phyTextArea');
+  area.innerHTML = '';
+  
+  // 心電図（詳細）
+  if (state.phys.ecg.on) {
+    const ecgRow = document.createElement('div');
+    ecgRow.className = 'form-row mt-2';
+    ecgRow.innerHTML = `
+      <label>心電図</label>
+      <div class="ecg-detail">
+        <div><label>調律</label><input type="text" id="ecgRhythm" placeholder="洞調律、AF等"></div>
+        <div><label>心拍数</label><input type="text" id="ecgRate" placeholder="72 bpm"></div>
+        <div><label>ST-T変化</label><input type="text" id="ecgST" placeholder="V1-4 ST上昇等"></div>
+        <div><label>QTc</label><input type="text" id="ecgQTc" placeholder="420 ms"></div>
+      </div>
+      <textarea rows="2" id="ecgTxt" placeholder="その他所見"></textarea>
+    `;
+    area.appendChild(ecgRow);
+    $('#ecgRhythm').value = state.phys.ecg.rhythm || '';
+    $('#ecgRate').value = state.phys.ecg.rate || '';
+    $('#ecgST').value = state.phys.ecg.st || '';
+    $('#ecgQTc').value = state.phys.ecg.qtc || '';
+    $('#ecgTxt').value = state.phys.ecg.txt || '';
+    $('#ecgRhythm').addEventListener('input', () => { state.phys.ecg.rhythm = $('#ecgRhythm').value; save(); });
+    $('#ecgRate').addEventListener('input', () => { state.phys.ecg.rate = $('#ecgRate').value; save(); });
+    $('#ecgST').addEventListener('input', () => { state.phys.ecg.st = $('#ecgST').value; save(); });
+    $('#ecgQTc').addEventListener('input', () => { state.phys.ecg.qtc = $('#ecgQTc').value; save(); });
+    $('#ecgTxt').addEventListener('input', () => { state.phys.ecg.txt = $('#ecgTxt').value; save(); });
+  }
+  
+  // 脳波
+  if (state.phys.eeg.on) {
+    const row = document.createElement('div');
+    row.className = 'form-row mt-2';
+    row.innerHTML = `<label>脳波所見</label><textarea rows="3" placeholder="所見を記載"></textarea>`;
+    const ta = row.querySelector('textarea');
+    ta.value = state.phys.eeg.txt || '';
+    ta.addEventListener('input', () => { state.phys.eeg.txt = ta.value; save(); });
+    area.appendChild(row);
+  }
+  
+  // 超音波
+  if (state.phys.us.on) {
+    const row = document.createElement('div');
+    row.className = 'form-row mt-2';
+    row.innerHTML = `<label>超音波所見</label><textarea rows="3" placeholder="所見を記載"></textarea>`;
+    const ta = row.querySelector('textarea');
+    ta.value = state.phys.us.txt || '';
+    ta.addEventListener('input', () => { state.phys.us.txt = ta.value; save(); });
+    area.appendChild(row);
+  }
+  
+  // その他生理
+  if (state.phys.other.on) {
+    const otherRow = document.createElement('div');
+    otherRow.className = 'form-row mt-2';
+    otherRow.innerHTML = `
+      <label>その他生理機能 - 検査名</label>
+      <input type="text" id="phyOtherName" placeholder="検査名（例：呼吸機能検査）" style="margin-bottom:8px">
+      <label>所見</label>
+      <textarea rows="3" id="phyOtherTxt" placeholder="所見を記載"></textarea>
+    `;
+    area.appendChild(otherRow);
+    $('#phyOtherName').value = state.phys.other.name || '';
+    $('#phyOtherTxt').value = state.phys.other.txt || '';
+    $('#phyOtherName').addEventListener('input', () => { state.phys.other.name = $('#phyOtherName').value; save(); });
+    $('#phyOtherTxt').addEventListener('input', () => { state.phys.other.txt = $('#phyOtherTxt').value; save(); });
+  }
+}
+
+function initProblems() {
+  const input = $('#probInput');
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const v = input.value.trim();
+      if (v) { state.problems.push({ name: v, note: '' }); input.value = ''; renderProblems(); save(); }
+    }
+  });
+  renderProblems();
+  
+  // 経過/方針復元
+  if (state.activePlan === 'plan') {
+    $$('.toggle-group .toggle-btn').forEach(b => b.classList.toggle('active', b.dataset.plan === 'plan'));
+    $$('.plan-section').forEach(s => s.classList.remove('active'));
+    $('#planSection').classList.add('active');
+  }
+  
+  $('#courseText').value = state.courseText || '';
+  $('#planText').value = state.planText || '';
+  $('#courseText').addEventListener('input', () => { state.courseText = $('#courseText').value; save(); });
+  $('#planText').addEventListener('input', () => { state.planText = $('#planText').value; save(); });
+}
+
+function renderProblems() {
+  const tags = $('#probTags');
+  const details = $('#probDetails');
+  tags.innerHTML = '';
+  details.innerHTML = '';
+  
+  state.problems.forEach((p, i) => {
+    const tag = document.createElement('div');
+    tag.className = 'problem-tag';
+    tag.innerHTML = `<span class="num">#${i + 1}</span><span>${p.name}</span><button class="del">×</button>`;
+    tag.querySelector('.del').addEventListener('click', () => { state.problems.splice(i, 1); renderProblems(); save(); });
+    tags.appendChild(tag);
+    
+    const item = document.createElement('div');
+    item.className = 'problem-item';
+    item.innerHTML = `<div class="header"><span class="num">#${i + 1}→</span><span>${p.name}</span></div><textarea rows="2" placeholder="考察を記載"></textarea>`;
+    const ta = item.querySelector('textarea');
+    ta.value = p.note || '';
+    ta.addEventListener('input', () => { p.note = ta.value; save(); });
+    details.appendChild(item);
+  });
+  
+  if (!state.problems.length) { details.innerHTML = '<p class="small text-center">Enterキーでプロブレムを追加</p>'; }
+}
+
+function bindInputs() {
+  const fields = [
+    ['#cc', 'cc'], ['#visitDate', 'visitDate'], ['#hpi', 'hpi'],
+    ['#pmh', 'pmh'], ['#meds', 'meds'], ['#allergy', 'allergy'], 
+    ['#familyHx', 'familyHx'], ['#habits', 'habits'], ['#social', 'social'], ['#keyPerson', 'keyPerson']
+  ];
+  
+  fields.forEach(([sel, key]) => {
+    const el = $(sel);
+    el.value = state[key] || '';
+    el.addEventListener('input', () => { state[key] = el.value; save(); });
+  });
+  
+  if (!state.visitDate) { state.visitDate = today(); $('#visitDate').value = state.visitDate; }
+}
+
+function fmtFinding(lbl, st) {
+  if (st === 'on') return lbl;
+  if (st === '+') return `${lbl}（＋）`;
+  if (st === '-') return `${lbl}（−）`;
+  return null;
+}
+
+function examText() {
+  const vText = vitalText();
+  const hasMultiVitals = state.vitals && state.vitals.length > 1;
+  const lines = [hasMultiVitals ? `【バイタル】\n${vText}` : `【バイタル】${vText}`];
+  
+  if (state.examTab === 'general') {
+    Object.entries(GEN_GROUPS).forEach(([key, def]) => {
+      const labels = [...(def.normal || []), ...(def.abn || [])];
+      const findings = labels.map(lbl => fmtFinding(lbl, state.chips[lbl])).filter(Boolean);
+      const memo = state.memos.general[key];
+      if (findings.length || memo) {
+        const title = { head: '頭頚部', resp: '呼吸器', card: '循環器', abd: '腹部', limb: '四肢', neuro: '神経' }[key];
+        lines.push(`【${title}】${[findings.join('、'), memo].filter(Boolean).join('。')}`);
+      }
+    });
+    if (state.examFree) lines.push(`【自由記載】${state.examFree}`);
+  } else if (state.examTab === 'trauma') {
+    Object.entries(TRA_GROUPS).forEach(([key, arr]) => {
+      const findings = arr.map(lbl => fmtFinding(lbl, state.chips[lbl])).filter(Boolean);
+      const memo = state.memos.trauma[key];
+      if (findings.length || memo) {
+        const title = { head: '頭部・顔面', neck: '頸部', chest: '胸部', abd: '腹部', pelvis: '骨盤', limb: '四肢' }[key];
+        lines.push(`【${title}】${[findings.join('、'), memo].filter(Boolean).join('。')}`);
+      }
+    });
+    const limbTxt = ['ru', 'rl', 'lu', 'll'].map(k => state.trauma[k] ? `${k.toUpperCase()}: ${state.trauma[k]}` : '').filter(Boolean).join(', ');
+    if (limbTxt) lines.push(`【四肢機能】${limbTxt}`);
+  } else if (state.examTab === 'stroke') {
+    const cnFindings = STR_CNs.map(lbl => fmtFinding(lbl, state.chips[lbl])).filter(Boolean);
+    if (cnFindings.length || state.memos.stroke.cn) { lines.push(`【脳神経】${[cnFindings.join('、'), state.memos.stroke.cn].filter(Boolean).join('。')}`); }
+    const eyeParts = [];
+    if (state.stroke.pupill || state.stroke.pupilr) eyeParts.push(`瞳孔 L${state.stroke.pupill || '-'}/R${state.stroke.pupilr || '-'}mm`);
+    if (state.stroke.plrL || state.stroke.plrR) eyeParts.push(`対光 L:${state.stroke.plrL || '-'}/R:${state.stroke.plrR || '-'}`);
+    if (state.stroke.gaze && state.stroke.gaze !== 'なし') eyeParts.push(`偏視 ${state.stroke.gaze}`);
+    if (eyeParts.length || state.memos.stroke.eye) { lines.push(`【瞳孔・眼】${[eyeParts.join('、'), state.memos.stroke.eye].filter(Boolean).join('。')}`); }
+    const m = state.stroke.mmt;
+    if (m.ru || m.rl || m.lu || m.ll) {
+      lines.push(`【運動】MMT RU:${m.ru || '-'} RL:${m.rl || '-'} LU:${m.lu || '-'} LL:${m.ll || '-'}/5${state.memos.stroke.motor ? '。' + state.memos.stroke.motor : ''}`);
+    } else if (state.memos.stroke.motor) { lines.push(`【運動】${state.memos.stroke.motor}`); }
+    const refParts = [];
+    if (state.stroke.btr) refParts.push(`BTR ${state.stroke.btr}`);
+    if (state.stroke.ptr) refParts.push(`PTR ${state.stroke.ptr}`);
+    if (state.stroke.babinski) refParts.push('Babinski陽性');
+    if (state.stroke.chaddock) refParts.push('Chaddock陽性');
+    if (refParts.length || state.memos.stroke.reflex) { lines.push(`【反射】${[refParts.join('、'), state.memos.stroke.reflex].filter(Boolean).join('。')}`); }
+    const higherFindings = STR_HIGHER.map(lbl => fmtFinding(lbl, state.chips[lbl])).filter(Boolean);
+    if (higherFindings.length || state.memos.stroke.higher) { lines.push(`【高次脳/小脳】${[higherFindings.join('、'), state.memos.stroke.higher].filter(Boolean).join('。')}`); }
+    let nihSum = 0;
+    NIHSS_ITEMS.forEach(item => { nihSum += Number(state.stroke.nih[item.key] || 0); });
+    lines.push(`【NIHSS】合計 ${nihSum}${state.stroke.nihMemo ? '。' + state.stroke.nihMemo : ''}`);
+  } else if (state.examTab === 'cpa') {
+    Object.entries(CPA_GROUPS).forEach(([key, arr]) => {
+      const findings = arr.map(lbl => fmtFinding(lbl, state.chips[lbl])).filter(Boolean);
+      const memo = state.memos.cpa[key];
+      if (findings.length || memo) {
+        const title = { body: '全身', head: '頭頚部', trunk: '胸腹部' }[key];
+        lines.push(`【${title}】${[findings.join('、'), memo].filter(Boolean).join('。')}`);
+      }
+    });
+  }
+  
+  return lines.join('\n');
+}
+
+function labsText() {
+  const lines = [];
+  const labLabels = { cbc: '血算', chem: '生化学', coag: '凝固', sugar: '血糖・心不全', gas: '血液ガス', urine: '尿定性', sediment: '尿沈渣', tumor: '腫瘍マーカー', endo: '内分泌', urineBio: '尿生化', csf: '髄液' };
+  
+  Object.keys(LABS).forEach(cat => {
+    const items = state.labs[cat].filter(x => x.val);
+    if (items.length) { lines.push(`${labLabels[cat]}: ${items.map(x => `${x.item} ${x.val}${x.unit ? ' ' + x.unit : ''}`).join(', ')}`); }
+  });
+  
+  if (state.infect.covid.type && state.infect.covid.res) { lines.push(`COVID-19(${state.infect.covid.type}): ${state.infect.covid.res}`); }
+  if (state.infect.flu.a) lines.push(`Influenza A: ${state.infect.flu.a}`);
+  if (state.infect.flu.b) lines.push(`Influenza B: ${state.infect.flu.b}`);
+  state.infect.cultures.forEach(c => { if (c.src && c.res) { lines.push(`培養(${c.src}): ${c.res}${c.note ? ' ' + c.note : ''}`); } });
+  
+  if (state.labFree) lines.push(state.labFree);
+  
+  return lines.join('\n');
+}
+
+function imagingText() {
+  const lines = [];
+  const imgLabels = { cxr: '胸部XP', ct: 'CT', ctc: '造影CT', mri: 'MRI' };
+  
+  ['cxr', 'ct', 'ctc', 'mri'].forEach(key => {
+    if (state.imaging[key].on) { lines.push(`${imgLabels[key]}: ${state.imaging[key].txt || '（所見なし）'}`); }
+  });
+  
+  if (state.imaging.other.on && state.imaging.other.name) {
+    lines.push(`${state.imaging.other.name}: ${state.imaging.other.txt || '（所見なし）'}`);
+  }
+  
+  return lines.join('\n');
+}
+
+function physText() {
+  const lines = [];
+  
+  if (state.phys.ecg.on) {
+    const ecgParts = [];
+    if (state.phys.ecg.rhythm) ecgParts.push(`調律:${state.phys.ecg.rhythm}`);
+    if (state.phys.ecg.rate) ecgParts.push(`HR:${state.phys.ecg.rate}`);
+    if (state.phys.ecg.st) ecgParts.push(`ST-T:${state.phys.ecg.st}`);
+    if (state.phys.ecg.qtc) ecgParts.push(`QTc:${state.phys.ecg.qtc}`);
+    const ecgMain = ecgParts.join(', ');
+    const ecgAll = [ecgMain, state.phys.ecg.txt].filter(Boolean).join('。');
+    lines.push(`心電図: ${ecgAll || '（所見なし）'}`);
+  }
+  if (state.phys.eeg.on) { lines.push(`脳波: ${state.phys.eeg.txt || '（所見なし）'}`); }
+  if (state.phys.us.on) { lines.push(`超音波: ${state.phys.us.txt || '（所見なし）'}`); }
+  if (state.phys.other.on && state.phys.other.name) {
+    lines.push(`${state.phys.other.name}: ${state.phys.other.txt || '（所見なし）'}`);
+  }
+  
+  return lines.join('\n');
+}
+
+function problemsText() {
+  if (!state.problems.length) return '（未設定）';
+  const tagLine = state.problems.map((p, i) => `#${i + 1} ${p.name}`).join(', ');
+  const details = state.problems.map((p, i) => `#${i + 1}→${p.note || '（考察なし）'}`).join('\n');
+  return `${tagLine}\n\n${details}`;
+}
+
+function renderOutput() {
+  const output = `【入院サマリ】
+
+［主訴］${state.cc || '（未入力）'}
+
+［受診日］${state.visitDate || '（未入力）'}
+
+［現病歴］
+${state.hpi || '（未入力）'}
+
+［既往歴］${state.pmh || 'なし'}
+［常用薬］${state.meds || 'なし'}
+［アレルギー］${state.allergy || 'なし'}
+［家族歴］${state.familyHx || '特記なし'}
+［嗜好歴］${state.habits || '特記なし'}
+［生活歴］${state.social || '（未入力）'}
+［キーパーソン］${state.keyPerson || '（未入力）'}
+
+［身体所見］
+${examText()}
+
+［検査所見］
+${labsText() || '（未入力）'}
+
+［画像検査］
+${imagingText() || '（未実施）'}
+
+［生理機能検査］
+${physText() || '（未実施）'}
+
+［プロブレムリスト］
+${problemsText()}
+
+［入院後経過］
+${state.courseText || '（未入力）'}
+
+［方針（P）］
+${state.planText || '（未入力）'}
+`;
+  
+  $('#outputText').textContent = output;
+}
+
+$('#copyOut').addEventListener('click', () => {
+  navigator.clipboard.writeText($('#outputText').textContent).then(() => {
+    const btn = $('#copyOut');
+    btn.textContent = 'コピー完了';
+    setTimeout(() => { btn.textContent = 'コピー'; }, 1500);
+  });
+});
+
+$('#printOut').addEventListener('click', () => window.print());
+
+$('#btnReset').addEventListener('click', () => {
+  if (confirm('すべてのデータを初期化しますか？')) {
+    localStorage.removeItem(STORAGE_KEY);
+    location.reload();
+  }
+});
+
+$('#btnResetMain').addEventListener('click', () => {
+  if (confirm('すべてのデータを初期化しますか？')) {
+    localStorage.removeItem(STORAGE_KEY);
+    location.reload();
+  }
+});
+
+function init() {
+  load();
+  bindInputs();
+  initVitals();
+  mountChips();
+  initStroke();
+  bindMemos();
+  initLabs();
+  initLabOCR();
+  initGeminiAPI();
+  initInfect();
+  initImaging();
+  initPhys();
+  initProblems();
+  
+  $$('.chip').forEach(el => { const st = state.chips[el.textContent]; if (st) el.dataset.state = st; });
+  switchExamTab(state.examTab || 'general');
+}
+
+init();
+</script>
+</body>
+</html>
