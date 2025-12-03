@@ -6,7 +6,6 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="外来ワンページ">
-<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <title>外来ワンページ iPhone版 v2.4</title>
 <style>
 :root {
@@ -1624,21 +1623,52 @@ function initLabOCR() {
   });
   
   // クリアボタン
-  $('#ocrClearBtn').addEventListener('click', () => {
-    ocrResults = {};
-    $('#ocrResultArea').style.display = 'none';
-    status.style.display = 'none';
-  });
+  const ocrClearBtn = $('#ocrClearBtn');
+  if (ocrClearBtn) {
+    ocrClearBtn.addEventListener('click', () => {
+      console.log('ocrClearBtn clicked');
+      ocrResults = {};
+      $('#ocrResultArea').style.display = 'none';
+      status.style.display = 'none';
+    });
+  }
   
   // 検査値に反映ボタン
-  $('#ocrApplyBtn').addEventListener('click', () => {
-    if (Object.keys(ocrResults).length > 0) {
-      applyLabData(ocrResults);
-      status.style.display = 'block';
-      status.innerHTML = '✅ 検査値に反映しました';
-      status.style.color = '#22c55e';
-    }
-  });
+  const ocrApplyBtn = $('#ocrApplyBtn');
+  if (ocrApplyBtn) {
+    ocrApplyBtn.addEventListener('click', () => {
+      console.log('ocrApplyBtn clicked');
+      console.log('ocrResults:', ocrResults);
+      
+      if (Object.keys(ocrResults).length === 0) {
+        status.style.display = 'block';
+        status.innerHTML = '⚠️ 反映する検査値がありません';
+        status.style.color = '#f59e0b';
+        return;
+      }
+      
+      const addedCount = applyLabData(ocrResults);
+      console.log('Added count:', addedCount);
+      
+      if (addedCount > 0) {
+        status.style.display = 'block';
+        status.innerHTML = `✅ ${addedCount}項目を検査値に反映しました`;
+        status.style.color = '#22c55e';
+        
+        // 反映したらOCR結果エリアをクリア
+        setTimeout(() => {
+          ocrResults = {};
+          $('#ocrResultArea').style.display = 'none';
+        }, 2000);
+      } else {
+        status.style.display = 'block';
+        status.innerHTML = '⚠️ 反映できる検査値が見つかりませんでした（項目名を確認してください）';
+        status.style.color = '#f59e0b';
+      }
+    });
+  } else {
+    console.error('ocrApplyBtn not found!');
+  }
 }
 
 // Gemini API 設定とAPI呼び出し
@@ -2156,6 +2186,8 @@ function renderOcrResults() {
 }
 
 function applyLabData(labData) {
+  console.log('applyLabData called with:', labData);
+  
   // 項目名からカテゴリを判定するマッピング
   const itemToCat = {};
   Object.entries(LABS).forEach(([cat, def]) => {
@@ -2169,11 +2201,19 @@ function applyLabData(labData) {
     });
   });
   
+  console.log('itemToCat sample:', { 
+    WBC: itemToCat['WBC'], 
+    Hb: itemToCat['Hb'], 
+    Na: itemToCat['Na'] 
+  });
+  
   let addedCount = 0;
   
   Object.entries(labData).forEach(([key, valueData]) => {
     // 項目名の正規化
     let normalizedKey = key.trim();
+    
+    console.log(`Processing: ${normalizedKey}`, valueData);
     
     // valueDataがオブジェクトの場合は value プロパティを取り出す
     let actualValue = valueData;
@@ -2181,7 +2221,11 @@ function applyLabData(labData) {
       actualValue = valueData.value;
     }
     
+    console.log(`  Normalized key: ${normalizedKey}, Actual value: ${actualValue}`);
+    
     const mapping = itemToCat[normalizedKey];
+    console.log(`  Mapping found:`, mapping);
+    
     if (mapping) {
       const { cat, unit } = mapping;
       
@@ -2200,13 +2244,19 @@ function applyLabData(labData) {
       if (normalizedKey === 'HCO3') itemName = 'HCO3-';
       
       if (existing) {
+        console.log(`  Updating existing item: ${itemName} = ${actualValue}`);
         existing.val = String(actualValue);
       } else {
+        console.log(`  Adding new item: ${itemName} = ${actualValue} (${unit})`);
         state.labs[cat].push({ item: itemName, unit, val: String(actualValue) });
       }
       addedCount++;
+    } else {
+      console.log(`  No mapping found for: ${normalizedKey}`);
     }
   });
+  
+  console.log(`Total added: ${addedCount}`);
   
   if (addedCount > 0) {
     save();
