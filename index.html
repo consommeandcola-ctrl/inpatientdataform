@@ -575,6 +575,11 @@ select {
             <h3 style="margin:0;color:#16a34a;font-size:14px;">📊 読み取り結果</h3>
             <button class="btn btn-sm" id="vitalReadClear" style="background:#fee2e2;color:#dc2626;padding:4px 10px;min-height:28px;">クリア</button>
           </div>
+          <div style="margin-bottom:10px;display:flex;align-items:center;gap:8px;">
+            <b style="font-size:13px;">時刻</b>
+            <input type="time" id="vitalReadTime" style="padding:6px 8px;border:1px solid var(--line);border-radius:6px;font-size:14px;">
+            <span class="small" style="color:#16a34a;">（撮影時刻）</span>
+          </div>
           <div id="vitalReadData" class="vital-grid" style="margin-bottom:10px"></div>
           <button class="btn btn-sm btn-success btn-block" id="vitalApplyBtn">バイタルに追加</button>
         </div>
@@ -1463,35 +1468,73 @@ function fileToBase64(file) {
 
 // Gemini APIでバイタルサインを読み取り
 async function callVitalGeminiAPI(apiKey, imageBase64) {
-  const prompt = `医療用モニター画面の画像から、バイタルサインを読み取ってください。
+  const prompt = `医療用モニター画面（ベッドサイドモニター）の画像からバイタルサインを読み取ってください。
 
-【読み取り対象】
-- 血圧（BP）: 収縮期/拡張期（例: 120/80）
-- 脈拍（HR/PR/心拍数）: 拍数/分（例: 75）
-- 呼吸数（RR/RESP）: 回数/分（例: 16）
-- SpO2（酸素飽和度）: パーセント（例: 98）
-- 体温（BT/TEMP）: 摂氏温度（例: 36.5）※表示されている場合のみ
+【モニター画面の特徴を理解する】
+1. **重要な数値は大きく表示されます**
+   - 画面の右側や中央に大きく表示されている数字が主要なバイタルサインです
+   - 小さい数字や括弧内の数字は補助情報（平均値など）です
 
-【重要な注意点】
-- モニター画面に表示されている数値のみを読み取る
-- 表示されていない項目は出力しない
-- 数値のみを抽出（単位は除去）
-- 血圧は収縮期(sbp)と拡張期(dbp)に分けて出力
+2. **色分けされています**
+   - 緑色の大きな数字 → 心拍数（HR/脈拍）
+   - 青色の大きな数字 → SpO2（酸素飽和度）
+   - 赤色の大きな数字 → 血圧（BP）、通常は「収縮期/拡張期」の形式
+   - 白色または黄色の数字 → 体温（BT）や呼吸数（RR）
+
+3. **典型的な配置**
+   - 画面右側に主要バイタルが縦に並んでいます
+   - 心拍数: 通常50-150の範囲、緑色
+   - SpO2: 通常85-100の範囲、青色、%表示
+   - 血圧: 「120/70」のような形式、赤色
+   - 呼吸数: 通常10-30の範囲
+   - 体温: 通常35-40の範囲、℃表示
+
+【読み取りルール】
+1. **最も大きく表示されている数字を優先**
+   - 小さい文字や括弧内の数字（平均血圧など）は無視
+   
+2. **色から判断**
+   - 緑の大きな数字 → HR
+   - 青の大きな数字 → SpO2
+   - 赤の数字で「/」がある → BP（収縮期/拡張期）
+   
+3. **数値の妥当性チェック**
+   - HR: 30-250の範囲（通常50-150）
+   - SpO2: 70-100の範囲
+   - 収縮期血圧: 60-250の範囲
+   - 拡張期血圧: 30-150の範囲
+   - 呼吸数: 5-60の範囲
+   - 体温: 30-42の範囲
+
+4. **複数の候補がある場合**
+   - より大きく表示されている数字を選択
+   - 色が明確な数字を優先
 
 【出力JSON形式】
 {
   "vitals": {
+    "hr": 120,
+    "spo2": 95,
     "sbp": 120,
-    "dbp": 80,
-    "hr": 75,
+    "dbp": 70,
     "rr": 16,
-    "spo2": 98,
-    "bt": 36.5
+    "bt": 37.0
   }
 }
 
-※表示されていない項目は省略してください
-※JSONのみを出力し、説明文は不要です`;
+【重要な注意】
+- 括弧内の数字（例: (91)）は平均血圧などの補助情報なので無視
+- 波形グラフは無視し、数値のみを読み取る
+- 表示されていない項目は出力に含めない
+- 必ずJSONのみを出力（説明文は不要）
+
+【例】
+画面に以下が表示されている場合:
+- 緑の大きな数字「120」→ HR: 120
+- 青の大きな数字「95」→ SpO2: 95
+- 赤の「120/70」→ BP: 120/70
+- 白い「37.0」→ BT: 37.0
+- 小さい「(91)」→ 無視（これは平均血圧）`;
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${apiKey}`;
   
@@ -1519,13 +1562,16 @@ async function callVitalGeminiAPI(apiKey, imageBase64) {
   }
   
   const data = await response.json();
+  console.log('Gemini API response:', data);
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  console.log('Extracted text:', text);
   
   // JSONを抽出
   let jsonText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
   
   try {
     const parsed = JSON.parse(jsonText);
+    console.log('Parsed vital data:', parsed);
     return parsed;
   } catch (e) {
     console.error('JSON parse error:', e, 'Text:', jsonText);
@@ -1537,6 +1583,7 @@ async function callVitalGeminiAPI(apiKey, imageBase64) {
 function renderVitalReadResult() {
   const resultArea = $('#vitalReadResult');
   const dataDiv = $('#vitalReadData');
+  const timeInput = $('#vitalReadTime');
   
   if (!vitalReadData) {
     resultArea.style.display = 'none';
@@ -1545,24 +1592,92 @@ function renderVitalReadResult() {
   
   resultArea.style.display = 'block';
   
+  // 時刻を設定
+  if (timeInput) {
+    timeInput.value = vitalReadData.time;
+    // 時刻変更時にvitalReadDataも更新
+    timeInput.addEventListener('input', (e) => {
+      vitalReadData.time = e.target.value;
+    });
+  }
+  
   const items = [];
+  
+  // 各項目を編集可能な入力フィールドとして表示
   if (vitalReadData.sbp && vitalReadData.dbp) {
-    items.push(`<b>BP</b><div>${vitalReadData.sbp}/${vitalReadData.dbp} <span class="unit">mmHg</span></div>`);
+    items.push(`
+      <b>BP</b>
+      <div style="display:flex;gap:4px;align-items:center;">
+        <input type="number" id="editSbp" value="${vitalReadData.sbp}" style="width:70px;padding:4px 8px;border:1px solid var(--line);border-radius:6px;font-size:14px;" min="60" max="250">
+        <span>/</span>
+        <input type="number" id="editDbp" value="${vitalReadData.dbp}" style="width:70px;padding:4px 8px;border:1px solid var(--line);border-radius:6px;font-size:14px;" min="30" max="150">
+        <span class="unit">mmHg</span>
+      </div>
+    `);
   }
+  
   if (vitalReadData.hr) {
-    items.push(`<b>HR</b><div>${vitalReadData.hr} <span class="unit">/min</span></div>`);
+    items.push(`
+      <b>HR</b>
+      <div style="display:flex;gap:4px;align-items:center;">
+        <input type="number" id="editHr" value="${vitalReadData.hr}" style="width:80px;padding:4px 8px;border:1px solid var(--line);border-radius:6px;font-size:14px;" min="30" max="250">
+        <span class="unit">/min</span>
+      </div>
+    `);
   }
+  
   if (vitalReadData.rr) {
-    items.push(`<b>RR</b><div>${vitalReadData.rr} <span class="unit">/min</span></div>`);
+    items.push(`
+      <b>RR</b>
+      <div style="display:flex;gap:4px;align-items:center;">
+        <input type="number" id="editRr" value="${vitalReadData.rr}" style="width:70px;padding:4px 8px;border:1px solid var(--line);border-radius:6px;font-size:14px;" min="5" max="60">
+        <span class="unit">/min</span>
+      </div>
+    `);
   }
+  
   if (vitalReadData.spo2) {
-    items.push(`<b>SpO₂</b><div>${vitalReadData.spo2} <span class="unit">%</span></div>`);
+    items.push(`
+      <b>SpO₂</b>
+      <div style="display:flex;gap:4px;align-items:center;">
+        <input type="number" id="editSpo2" value="${vitalReadData.spo2}" style="width:70px;padding:4px 8px;border:1px solid var(--line);border-radius:6px;font-size:14px;" min="70" max="100">
+        <span class="unit">%</span>
+      </div>
+    `);
   }
+  
   if (vitalReadData.bt) {
-    items.push(`<b>BT</b><div>${vitalReadData.bt} <span class="unit">℃</span></div>`);
+    items.push(`
+      <b>BT</b>
+      <div style="display:flex;gap:4px;align-items:center;">
+        <input type="number" id="editBt" value="${vitalReadData.bt}" step="0.1" style="width:70px;padding:4px 8px;border:1px solid var(--line);border-radius:6px;font-size:14px;" min="30" max="42">
+        <span class="unit">℃</span>
+      </div>
+    `);
   }
   
   dataDiv.innerHTML = items.join('');
+  
+  // 編集イベントリスナーを追加
+  const updateValue = (id, field) => {
+    const input = document.getElementById(id);
+    if (input) {
+      input.addEventListener('input', (e) => {
+        const value = parseFloat(e.target.value);
+        if (!isNaN(value)) {
+          vitalReadData[field] = value;
+          console.log(`Updated ${field}:`, value);
+        }
+      });
+    }
+  };
+  
+  updateValue('editSbp', 'sbp');
+  updateValue('editDbp', 'dbp');
+  updateValue('editHr', 'hr');
+  updateValue('editRr', 'rr');
+  updateValue('editSpo2', 'spo2');
+  updateValue('editBt', 'bt');
 }
 
 function vitalText() {
