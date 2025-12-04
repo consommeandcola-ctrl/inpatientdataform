@@ -1846,6 +1846,17 @@ function initLabs() {
     if (!state.labs[cat].some(x => x.item === item)) {
       const def = (NORMALS[cat] || {})[item] || '';
       state.labs[cat].push({ item, unit, val: def });
+      
+      // LABSの定義順序に並べ替え
+      const definedOrder = LABS[cat].items.map(([item]) => item);
+      state.labs[cat].sort((a, b) => {
+        const indexA = definedOrder.indexOf(a.item);
+        const indexB = definedOrder.indexOf(b.item);
+        if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+        if (indexA === -1) return 1;
+        if (indexB === -1) return -1;
+        return 0;
+      });
     }
     renderLabEdit();
     save();
@@ -1853,10 +1864,25 @@ function initLabs() {
   
   const addSet = (cat) => {
     LABS[cat].items.forEach(([k, u]) => {
-      if (!state.labs[cat].some(x => x.item === k)) {
+      const existing = state.labs[cat].find(x => x.item === k);
+      if (!existing) {
+        // 項目が存在しない場合のみ基準値で追加
         state.labs[cat].push({ item: k, unit: u, val: (NORMALS[cat] || {})[k] || '' });
       }
+      // 既に項目が存在する場合は何もしない（患者データを優先保護）
     });
+    
+    // LABSの定義順序に並べ替え
+    const definedOrder = LABS[cat].items.map(([item]) => item);
+    state.labs[cat].sort((a, b) => {
+      const indexA = definedOrder.indexOf(a.item);
+      const indexB = definedOrder.indexOf(b.item);
+      if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+      if (indexA === -1) return 1;
+      if (indexB === -1) return -1;
+      return 0;
+    });
+    
     catSel.value = cat;
     fillItems();
     renderLabEdit();
@@ -1867,9 +1893,23 @@ function initLabs() {
   $('#labSetAll').addEventListener('click', () => {
     ['cbc', 'chem', 'coag', 'gas', 'urine', 'sediment'].forEach(cat => {
       LABS[cat].items.forEach(([k, u]) => {
-        if (!state.labs[cat].some(x => x.item === k)) {
+        const existing = state.labs[cat].find(x => x.item === k);
+        if (!existing) {
+          // 項目が存在しない場合のみ基準値で追加
           state.labs[cat].push({ item: k, unit: u, val: (NORMALS[cat] || {})[k] || '' });
         }
+        // 既に項目が存在する場合は何もしない（患者データを優先保護）
+      });
+      
+      // LABSの定義順序に並べ替え
+      const definedOrder = LABS[cat].items.map(([item]) => item);
+      state.labs[cat].sort((a, b) => {
+        const indexA = definedOrder.indexOf(a.item);
+        const indexB = definedOrder.indexOf(b.item);
+        if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+        if (indexA === -1) return 1;
+        if (indexB === -1) return -1;
+        return 0;
       });
     });
     // BNP, HbA1c追加
@@ -2731,6 +2771,30 @@ function applyLabData(labData) {
   console.log(`合計 ${addedCount} 項目を反映しました`);
   
   if (addedCount > 0) {
+    // データ反映後、各カテゴリをLABSの定義順序に並べ替え
+    categoryPriority.forEach(cat => {
+      if (!LABS[cat] || !state.labs[cat]) return;
+      
+      // LABSで定義されている項目の順序を取得
+      const definedOrder = LABS[cat].items.map(([item]) => item);
+      
+      // 現在の項目を定義順序でソート
+      state.labs[cat].sort((a, b) => {
+        const indexA = definedOrder.indexOf(a.item);
+        const indexB = definedOrder.indexOf(b.item);
+        
+        // 両方とも定義されている場合は、定義順序に従う
+        if (indexA !== -1 && indexB !== -1) {
+          return indexA - indexB;
+        }
+        // aが定義されていない場合は後ろに
+        if (indexA === -1) return 1;
+        // bが定義されていない場合は前に
+        if (indexB === -1) return -1;
+        return 0;
+      });
+    });
+    
     save();
     renderLabEdit();
   }
