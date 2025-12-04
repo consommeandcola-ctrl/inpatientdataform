@@ -564,6 +564,9 @@ select {
         <button class="btn btn-sm btn-primary" id="vitalImageBtn" style="width:100%">
           📷 モニター画面を読み取る
         </button>
+        <div class="small mt-1" style="color:#6b7280;font-size:11px;text-align:center;">
+          HR・BP・SpO2の3項目を自動読み取り
+        </div>
         <input type="file" id="vitalImageInput" accept="image/*" capture="environment" style="display:none">
         <div id="vitalReadStatus" class="small mt-2" style="display:none"></div>
       </div>
@@ -719,17 +722,15 @@ select {
 
       <!-- CPA -->
       <div class="exam-pane" data-pane="cpa">
-        <h3>全身所見</h3>
-        <div class="chips" id="cpa-body"></div>
-        <textarea class="mt-2" id="memo-cpa-body" rows="2" placeholder="メモ"></textarea>
+        <div style="background:#fee2e2;border:1px solid #f87171;border-radius:10px;padding:12px;margin-bottom:12px">
+          <p style="margin:0;color:#b91c1c;font-size:13px;font-weight:500;">
+            💡 CPAタブを開くと、バイタルサインが自動的にCPA初期値（BP:-/-, HR:-, RR:-, SpO2:測定不能, BT:実測値, GCS:E1V1M1）に設定され、心停止イベント1が追加されます
+          </p>
+        </div>
         
-        <h3>頭頚部</h3>
-        <div class="chips" id="cpa-head"></div>
-        <textarea class="mt-2" id="memo-cpa-head" rows="2" placeholder="メモ"></textarea>
-        
-        <h3>胸腹部</h3>
-        <div class="chips" id="cpa-trunk"></div>
-        <textarea class="mt-2" id="memo-cpa-trunk" rows="2" placeholder="メモ"></textarea>
+        <h3>心停止イベント</h3>
+        <div id="cpaEventsContainer"></div>
+        <button class="btn btn-primary btn-block mt-2" id="addCpaEventBtn">＋ 心停止イベントを追加</button>
       </div>
     </div>
   </div>
@@ -989,11 +990,11 @@ const state = {
   memos: {
     general: { head: '', resp: '', card: '', abd: '', limb: '', neuro: '' },
     trauma: { head: '', neck: '', chest: '', abd: '', pelvis: '', limb: '' },
-    stroke: { cn: '', eye: '', motor: '', reflex: '', higher: '' },
-    cpa: { body: '', head: '', trunk: '' }
+    stroke: { cn: '', eye: '', motor: '', reflex: '', higher: '' }
   },
   examFree: '',
   examTab: 'general',
+  cpaEvents: [],
   trauma: { ru: '', rl: '', lu: '', ll: '' },
   stroke: {
     pupilL: '', pupilR: '', plrL: '', plrR: '', gaze: '', nyst: '',
@@ -1073,12 +1074,6 @@ const TRA_GROUPS = {
 const STR_CNs = ['視力低下', '視野欠損', '複視', '眼瞼下垂', '顔面麻痺', '顔面感覚低下', '聴力低下', 'めまい', '構音障害', '嚥下障害', '舌偏位', 'カーテン徴候'];
 const STR_HIGHER = ['失語', '運動性失語', '感覚性失語', '構音障害', '失行', '失認', '半側空間無視', '注意障害', '見当識障害', '小脳失調', '指鼻試験異常', '踵膝試験異常'];
 
-const CPA_GROUPS = {
-  body: ['心停止', '呼吸停止', 'チアノーゼ', '四肢冷感', '皮膚蒼白', '死斑', '死後硬直'],
-  head: ['頸動脈触知不可', '対光反射消失', '瞳孔散大固定'],
-  trunk: ['心音聴取不可', '呼吸音聴取不可', '腹部膨隆']
-};
-
 const NIHSS_ITEMS = [
   { key: '1a', label: '1a 意識水準', hint: '0:覚醒 1:軽度鈍麻 2:強刺激で開眼 3:反応なし', max: 3 },
   { key: '1b', label: '1b 質問（年齢/月）', hint: '0:両方正解 1:1つ正解 2:両方不正解', max: 2 },
@@ -1118,6 +1113,14 @@ function load() {
           gcs: oldVital.gcs || { e: 4, v: 5, m: 6 }
         }];
       }
+      // cpaEventsが存在しない場合は空配列で初期化
+      if (!state.cpaEvents) {
+        state.cpaEvents = [];
+      }
+      // 古いmemos.cpaを削除（後方互換性）
+      if (state.memos && state.memos.cpa) {
+        delete state.memos.cpa;
+      }
     } catch (e) {} 
   }
 }
@@ -1135,6 +1138,23 @@ function switchExamTab(exam) {
   state.examTab = exam;
   $$('.exam-tab').forEach(el => el.classList.toggle('active', el.dataset.exam === exam));
   $$('.exam-pane').forEach(el => el.classList.toggle('active', el.dataset.pane === exam));
+  
+  // CPAタブ選択時の処理
+  if (exam === 'cpa') {
+    setCpaVitalDefaults();
+    // 心停止イベントが空の場合は自動的に追加
+    if (state.cpaEvents.length === 0) {
+      addCpaEvent();
+      // 追加後、少し待ってからスクロール
+      setTimeout(() => {
+        const container = $('#cpaEventsContainer');
+        if (container && container.children.length > 0) {
+          container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }, 100);
+    }
+  }
+  
   save();
 }
 $$('.exam-tab').forEach(el => { el.addEventListener('click', () => switchExamTab(el.dataset.exam)); });
@@ -1395,9 +1415,15 @@ function initVitalImageReader() {
           ...result.vitals
         };
         
+        // 読み取った項目を表示
+        const readItems = [];
+        if (vitalReadData.hr) readItems.push('HR');
+        if (vitalReadData.sbp && vitalReadData.dbp) readItems.push('BP');
+        if (vitalReadData.spo2) readItems.push('SpO2');
+        
         renderVitalReadResult();
         statusDiv.style.display = 'block';
-        statusDiv.textContent = `✅ モニター画面を読み取りました（撮影時刻: ${captureTimeStr}）`;
+        statusDiv.textContent = `✅ ${readItems.join('・')}を読み取りました（${captureTimeStr}）`;
         statusDiv.style.color = '#22c55e';
       } else {
         statusDiv.style.display = 'block';
@@ -1431,10 +1457,10 @@ function initVitalImageReader() {
       sbp: vitalReadData.sbp || 120,
       dbp: vitalReadData.dbp || 80,
       hr: vitalReadData.hr || 72,
-      rr: vitalReadData.rr || 16,
+      rr: 16, // モニター読み取りでは取得しないのでデフォルト値
       spo2: vitalReadData.spo2 || 98,
-      bt: vitalReadData.bt || 36.6,
-      gcs: { e: 4, v: 5, m: 6 } // GCSはモニターに出ないのでデフォルト値
+      bt: 36.6, // モニター読み取りでは取得しないのでデフォルト値
+      gcs: { e: 4, v: 5, m: 6 }
     };
     
     state.vitals.push(newVital);
@@ -1445,7 +1471,7 @@ function initVitalImageReader() {
     vitalReadData = null;
     resultArea.style.display = 'none';
     statusDiv.style.display = 'block';
-    statusDiv.textContent = '✅ バイタルに追加しました';
+    statusDiv.textContent = '✅ バイタルに追加しました（RR・BT・GCSはデフォルト値）';
     statusDiv.style.color = '#22c55e';
     
     setTimeout(() => {
@@ -1468,73 +1494,45 @@ function fileToBase64(file) {
 
 // Gemini APIでバイタルサインを読み取り
 async function callVitalGeminiAPI(apiKey, imageBase64) {
-  const prompt = `医療用モニター画面（ベッドサイドモニター）の画像からバイタルサインを読み取ってください。
+  const prompt = `医療用モニター画面から、以下の3つのバイタルサインのみを読み取ってください。
 
-【モニター画面の特徴を理解する】
-1. **重要な数値は大きく表示されます**
-   - 画面の右側や中央に大きく表示されている数字が主要なバイタルサインです
-   - 小さい数字や括弧内の数字は補助情報（平均値など）です
+【読み取り対象】
 
-2. **色分けされています**
-   - 緑色の大きな数字 → 心拍数（HR/脈拍）
-   - 青色の大きな数字 → SpO2（酸素飽和度）
-   - 赤色の大きな数字 → 血圧（BP）、通常は「収縮期/拡張期」の形式
-   - 白色または黄色の数字 → 体温（BT）や呼吸数（RR）
+1. **心拍数（HR）**
+   - 緑色の波形に対応する数値
+   - 画面上で緑色で表示されている大きな数字
+   - 通常30-250の範囲
 
-3. **典型的な配置**
-   - 画面右側に主要バイタルが縦に並んでいます
-   - 心拍数: 通常50-150の範囲、緑色
-   - SpO2: 通常85-100の範囲、青色、%表示
-   - 血圧: 「120/70」のような形式、赤色
-   - 呼吸数: 通常10-30の範囲
-   - 体温: 通常35-40の範囲、℃表示
+2. **血圧（BP）**
+   - 赤色の波形に対応する数値
+   - 「120/80」のように「/（スラッシュ）」で区切られた数字
+   - 収縮期血圧/拡張期血圧の形式
+   - 括弧内の数字（例：(91)）は平均血圧なので無視
 
-【読み取りルール】
-1. **最も大きく表示されている数字を優先**
-   - 小さい文字や括弧内の数字（平均血圧など）は無視
-   
-2. **色から判断**
-   - 緑の大きな数字 → HR
-   - 青の大きな数字 → SpO2
-   - 赤の数字で「/」がある → BP（収縮期/拡張期）
-   
-3. **数値の妥当性チェック**
-   - HR: 30-250の範囲（通常50-150）
-   - SpO2: 70-100の範囲
-   - 収縮期血圧: 60-250の範囲
-   - 拡張期血圧: 30-150の範囲
-   - 呼吸数: 5-60の範囲
-   - 体温: 30-42の範囲
+3. **酸素飽和度（SpO2）**
+   - 青色または水色の波形に対応する数値
+   - 通常70-100の範囲
+   - パーセント表示
 
-4. **複数の候補がある場合**
-   - より大きく表示されている数字を選択
-   - 色が明確な数字を優先
+【重要なルール】
+- 波形の色と対応する大きな数字を見つける
+- 最も大きく表示されている数値を選択
+- 括弧内の数字は無視
+- 小さい補助的な数字は無視
+- これら3項目以外（体温、呼吸数など）は読み取らない
 
 【出力JSON形式】
 {
   "vitals": {
     "hr": 120,
-    "spo2": 95,
     "sbp": 120,
-    "dbp": 70,
-    "rr": 16,
-    "bt": 37.0
+    "dbp": 80,
+    "spo2": 95
   }
 }
 
-【重要な注意】
-- 括弧内の数字（例: (91)）は平均血圧などの補助情報なので無視
-- 波形グラフは無視し、数値のみを読み取る
-- 表示されていない項目は出力に含めない
-- 必ずJSONのみを出力（説明文は不要）
-
-【例】
-画面に以下が表示されている場合:
-- 緑の大きな数字「120」→ HR: 120
-- 青の大きな数字「95」→ SpO2: 95
-- 赤の「120/70」→ BP: 120/70
-- 白い「37.0」→ BT: 37.0
-- 小さい「(91)」→ 無視（これは平均血圧）`;
+※必ずJSONのみを出力（説明文は不要）
+※読み取れない項目があれば、その項目は省略`;
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${apiKey}`;
   
@@ -1603,7 +1601,18 @@ function renderVitalReadResult() {
   
   const items = [];
   
-  // 各項目を編集可能な入力フィールドとして表示
+  // HR（心拍数）
+  if (vitalReadData.hr) {
+    items.push(`
+      <b>HR</b>
+      <div style="display:flex;gap:4px;align-items:center;">
+        <input type="number" id="editHr" value="${vitalReadData.hr}" style="width:80px;padding:4px 8px;border:1px solid var(--line);border-radius:6px;font-size:14px;" min="30" max="250">
+        <span class="unit">/min</span>
+      </div>
+    `);
+  }
+  
+  // BP（血圧）
   if (vitalReadData.sbp && vitalReadData.dbp) {
     items.push(`
       <b>BP</b>
@@ -1616,42 +1625,13 @@ function renderVitalReadResult() {
     `);
   }
   
-  if (vitalReadData.hr) {
-    items.push(`
-      <b>HR</b>
-      <div style="display:flex;gap:4px;align-items:center;">
-        <input type="number" id="editHr" value="${vitalReadData.hr}" style="width:80px;padding:4px 8px;border:1px solid var(--line);border-radius:6px;font-size:14px;" min="30" max="250">
-        <span class="unit">/min</span>
-      </div>
-    `);
-  }
-  
-  if (vitalReadData.rr) {
-    items.push(`
-      <b>RR</b>
-      <div style="display:flex;gap:4px;align-items:center;">
-        <input type="number" id="editRr" value="${vitalReadData.rr}" style="width:70px;padding:4px 8px;border:1px solid var(--line);border-radius:6px;font-size:14px;" min="5" max="60">
-        <span class="unit">/min</span>
-      </div>
-    `);
-  }
-  
+  // SpO2（酸素飽和度）
   if (vitalReadData.spo2) {
     items.push(`
       <b>SpO₂</b>
       <div style="display:flex;gap:4px;align-items:center;">
         <input type="number" id="editSpo2" value="${vitalReadData.spo2}" style="width:70px;padding:4px 8px;border:1px solid var(--line);border-radius:6px;font-size:14px;" min="70" max="100">
         <span class="unit">%</span>
-      </div>
-    `);
-  }
-  
-  if (vitalReadData.bt) {
-    items.push(`
-      <b>BT</b>
-      <div style="display:flex;gap:4px;align-items:center;">
-        <input type="number" id="editBt" value="${vitalReadData.bt}" step="0.1" style="width:70px;padding:4px 8px;border:1px solid var(--line);border-radius:6px;font-size:14px;" min="30" max="42">
-        <span class="unit">℃</span>
       </div>
     `);
   }
@@ -1672,22 +1652,34 @@ function renderVitalReadResult() {
     }
   };
   
+  updateValue('editHr', 'hr');
   updateValue('editSbp', 'sbp');
   updateValue('editDbp', 'dbp');
-  updateValue('editHr', 'hr');
-  updateValue('editRr', 'rr');
   updateValue('editSpo2', 'spo2');
-  updateValue('editBt', 'bt');
 }
 
 function vitalText() {
   if (!state.vitals || state.vitals.length === 0) return '（未入力）';
   
   return state.vitals.map((v, idx) => {
+    const isCpaMode = state.examTab === 'cpa' || (v.sbp === 0 && v.hr === 0 && v.rr === 0);
     const g = v.gcs;
-    const gTxt = g.v === 'T' ? `E${g.e}VTM${g.m}` : `E${g.e}V${g.v}M${g.m}(${g.e + g.v + g.m})`;
+    const gTxt = g.v === 'T' ? `E${g.e}VTM${g.m}` : `E${g.e}V${g.v}M${g.m}(${g.e + (g.v === 'T' ? 0 : g.v) + g.m})`;
     const timeStr = v.time ? `${v.time} ` : '';
-    return `${timeStr}BP ${v.sbp}/${v.dbp}, HR ${v.hr}, RR ${v.rr}, SpO₂ ${v.spo2}%, BT ${typeof v.bt === 'number' ? v.bt.toFixed(1) : v.bt}℃, GCS ${gTxt}`;
+    
+    if (isCpaMode) {
+      // CPAモード：0値は「-」、SpO2は「測定不能」、BTは実測値
+      const bpTxt = (v.sbp === 0 && v.dbp === 0) ? '-/-' : `${v.sbp}/${v.dbp}`;
+      const hrTxt = v.hr === 0 ? '-' : v.hr;
+      const rrTxt = v.rr === 0 ? '-' : v.rr;
+      const spo2Txt = v.spo2 === 0 ? '測定不能' : `${v.spo2}%`;
+      const btTxt = v.bt === 0 ? '-' : (typeof v.bt === 'number' ? v.bt.toFixed(1) : v.bt);
+      
+      return `${timeStr}BP ${bpTxt}, HR ${hrTxt}, RR ${rrTxt}, SpO₂ ${spo2Txt}, BT ${btTxt}℃, GCS ${gTxt}`;
+    } else {
+      // 通常モード
+      return `${timeStr}BP ${v.sbp}/${v.dbp}, HR ${v.hr}, RR ${v.rr}, SpO₂ ${v.spo2}%, BT ${typeof v.bt === 'number' ? v.bt.toFixed(1) : v.bt}℃, GCS ${gTxt}`;
+    }
   }).join('\n');
 }
 
@@ -1727,11 +1719,6 @@ function mountChips() {
   const higherBox = $('#str-higher');
   higherBox.innerHTML = '';
   STR_HIGHER.forEach(lbl => higherBox.appendChild(mkChip(lbl, 'abn')));
-  Object.entries(CPA_GROUPS).forEach(([key, arr]) => {
-    const box = $(`#cpa-${key}`);
-    box.innerHTML = '';
-    arr.forEach(lbl => box.appendChild(mkChip(lbl, 'abn')));
-  });
 }
 
 function initStroke() {
@@ -1828,11 +1815,6 @@ function bindMemos() {
     const el = $(`#memo-str-${key}`);
     el.value = state.memos.stroke[key] || '';
     el.addEventListener('input', () => { state.memos.stroke[key] = el.value; save(); });
-  });
-  ['body', 'head', 'trunk'].forEach(key => {
-    const el = $(`#memo-cpa-${key}`);
-    el.value = state.memos.cpa[key] || '';
-    el.addEventListener('input', () => { state.memos.cpa[key] = el.value; save(); });
   });
   $('#examFree').value = state.examFree || '';
   $('#examFree').addEventListener('input', () => { state.examFree = $('#examFree').value; save(); });
@@ -3062,17 +3044,84 @@ function examText() {
     NIHSS_ITEMS.forEach(item => { nihSum += Number(state.stroke.nih[item.key] || 0); });
     lines.push(`【NIHSS】合計 ${nihSum}${state.stroke.nihMemo ? '。' + state.stroke.nihMemo : ''}`);
   } else if (state.examTab === 'cpa') {
-    Object.entries(CPA_GROUPS).forEach(([key, arr]) => {
-      const findings = arr.map(lbl => fmtFinding(lbl, state.chips[lbl])).filter(Boolean);
-      const memo = state.memos.cpa[key];
-      if (findings.length || memo) {
-        const title = { body: '全身', head: '頭頚部', trunk: '胸腹部' }[key];
-        lines.push(`【${title}】${[findings.join('、'), memo].filter(Boolean).join('。')}`);
-      }
-    });
+    // CPAイベント出力
+    if (state.cpaEvents && state.cpaEvents.length > 0) {
+      state.cpaEvents.forEach((event, idx) => {
+        const eventTitle = idx === 0 ? '心停止イベント 1' : `心停止イベント ${idx + 1}（再心停止）`;
+        const eventLines = [`【${eventTitle}】`];
+        
+        if (idx === 0) {
+          // 初回心停止の詳細情報
+          eventLines.push(`心停止時刻: ${event.arrestTime || '-'}`);
+          eventLines.push(`初期波形: ${event.rhythm || 'Asystole'}`);
+          eventLines.push(`目撃: ${event.witnessed ? 'あり' : 'なし'}`);
+          eventLines.push(`バイスタンダーCPR: ${event.bystander ? 'あり' : 'なし'}`);
+          
+          if (event.cprStart) eventLines.push(`胸骨圧迫開始: ${event.cprStart}`);
+          if (event.ivTime) eventLines.push(`末梢確保: ${event.ivTime}`);
+          
+          // 気道確保
+          const airway = [];
+          if (event.lt) airway.push('LT挿入');
+          if (event.intubation) airway.push(`気管挿管 ${event.intubationTime || ''}`);
+          if (airway.length) eventLines.push(`気道確保: ${airway.join('、')}`);
+        } else {
+          // 再心停止
+          eventLines.push(`心停止時刻: ${event.arrestTime || '-'}`);
+          eventLines.push(`波形: ${event.rhythm || 'Asystole'}`);
+        }
+        
+        // 薬剤投与
+        if (event.adrenalineTimes && event.adrenalineTimes.length > 0) {
+          eventLines.push(`アドレナリン: ${event.adrenalineTimes.join('、')}`);
+        }
+        if (event.amiodaroneTimes && event.amiodaroneTimes.length > 0) {
+          eventLines.push(`アミオダロン: ${event.amiodaroneTimes.join('、')}`);
+        }
+        if (event.atropineTimes && event.atropineTimes.length > 0) {
+          eventLines.push(`アトロピン: ${event.atropineTimes.join('、')}`);
+        }
+        if (event.pcpsTime) {
+          eventLines.push(`PCPS導入: ${event.pcpsTime}`);
+        }
+        
+        // 転帰
+        if (event.roscTime) {
+          eventLines.push(`ROSC時刻: ${event.roscTime}`);
+        }
+        
+        // Flow Time（初回心停止のみ）
+        if (idx === 0 && event.arrestTime && event.cprStart) {
+          const noFlow = calcTimeDiff(event.arrestTime, event.cprStart);
+          if (noFlow !== null) eventLines.push(`No Flow Time: ${noFlow}分`);
+        }
+        if (event.cprStart && event.roscTime) {
+          const lowFlow = calcTimeDiff(event.cprStart, event.roscTime);
+          if (lowFlow !== null) eventLines.push(`Low Flow Time: ${lowFlow}分`);
+        } else if (idx > 0 && event.arrestTime && event.roscTime) {
+          const lowFlow = calcTimeDiff(event.arrestTime, event.roscTime);
+          if (lowFlow !== null) eventLines.push(`Low Flow Time: ${lowFlow}分`);
+        }
+        
+        if (event.memo) eventLines.push(`メモ: ${event.memo}`);
+        
+        lines.push(eventLines.join('\n'));
+      });
+    }
   }
   
   return lines.join('\n');
+}
+
+// 時刻差分計算（分）
+function calcTimeDiff(time1, time2) {
+  if (!time1 || !time2) return null;
+  const [h1, m1] = time1.split(':').map(Number);
+  const [h2, m2] = time2.split(':').map(Number);
+  const t1 = h1 * 60 + m1;
+  const t2 = h2 * 60 + m2;
+  const diff = t2 - t1;
+  return diff >= 0 ? diff : null;
 }
 
 function labsText() {
@@ -3205,6 +3254,425 @@ $('#btnResetMain').addEventListener('click', () => {
   }
 });
 
+// CPA イベント管理
+function initCpaEvents() {
+  const addBtn = $('#addCpaEventBtn');
+  if (addBtn) {
+    addBtn.addEventListener('click', addCpaEvent);
+  }
+  renderCpaEvents();
+}
+
+function addCpaEvent() {
+  const now = new Date();
+  const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  
+  const newEvent = {
+    arrestTime: time,
+    rhythm: 'Asystole',
+    witnessed: false,
+    bystander: false,
+    cprStart: '',
+    ivTime: '',
+    adrenalineTimes: [],
+    amiodaroneTimes: [],
+    atropineTimes: [],
+    pcpsTime: '',
+    lt: false,
+    intubation: false,
+    intubationTime: '',
+    roscTime: '',
+    memo: ''
+  };
+  
+  state.cpaEvents.push(newEvent);
+  renderCpaEvents();
+  save();
+}
+
+function deleteCpaEvent(idx) {
+  if (confirm('この心停止イベントを削除しますか？')) {
+    state.cpaEvents.splice(idx, 1);
+    renderCpaEvents();
+    save();
+  }
+}
+
+function updateCpaEventField(idx, field, value) {
+  if (state.cpaEvents[idx]) {
+    state.cpaEvents[idx][field] = value;
+    if (field === 'arrestTime' || field === 'cprStart' || field === 'roscTime') {
+      calcFlowTimes(idx);
+    }
+    save();
+  }
+}
+
+function setCpaEventNow(idx, field) {
+  const now = new Date();
+  const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  updateCpaEventField(idx, field, time);
+  renderCpaEvents();
+}
+
+function toggleCpaField(idx, field) {
+  if (state.cpaEvents[idx]) {
+    state.cpaEvents[idx][field] = !state.cpaEvents[idx][field];
+    renderCpaEvents();
+    save();
+  }
+}
+
+function addAdrenalineTime(idx) {
+  const now = new Date();
+  const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  state.cpaEvents[idx].adrenalineTimes.push(time);
+  renderCpaEvents();
+  save();
+}
+
+function deleteAdrenalineTime(eventIdx, adrIdx) {
+  state.cpaEvents[eventIdx].adrenalineTimes.splice(adrIdx, 1);
+  renderCpaEvents();
+  save();
+}
+
+function updateAdrenalineTime(eventIdx, adrIdx, value) {
+  state.cpaEvents[eventIdx].adrenalineTimes[adrIdx] = value;
+  save();
+}
+
+function addAmiodaroneTime(idx) {
+  const now = new Date();
+  const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  if (!state.cpaEvents[idx].amiodaroneTimes) {
+    state.cpaEvents[idx].amiodaroneTimes = [];
+  }
+  state.cpaEvents[idx].amiodaroneTimes.push(time);
+  renderCpaEvents();
+  save();
+}
+
+function deleteAmiodaroneTime(eventIdx, adrIdx) {
+  state.cpaEvents[eventIdx].amiodaroneTimes.splice(adrIdx, 1);
+  renderCpaEvents();
+  save();
+}
+
+function updateAmiodaroneTime(eventIdx, adrIdx, value) {
+  state.cpaEvents[eventIdx].amiodaroneTimes[adrIdx] = value;
+  save();
+}
+
+function addAtropineTime(idx) {
+  const now = new Date();
+  const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  if (!state.cpaEvents[idx].atropineTimes) {
+    state.cpaEvents[idx].atropineTimes = [];
+  }
+  state.cpaEvents[idx].atropineTimes.push(time);
+  renderCpaEvents();
+  save();
+}
+
+function deleteAtropineTime(eventIdx, adrIdx) {
+  state.cpaEvents[eventIdx].atropineTimes.splice(adrIdx, 1);
+  renderCpaEvents();
+  save();
+}
+
+function updateAtropineTime(eventIdx, adrIdx, value) {
+  state.cpaEvents[eventIdx].atropineTimes[adrIdx] = value;
+  save();
+}
+
+function openCpaRhythmDialog(idx) {
+  const rhythms = ['Vf', 'Pulseless VT', 'PEA', 'Asystole'];
+  const current = state.cpaEvents[idx].rhythm;
+  const selected = prompt(`初期波形を選択してください:\n1: Vf\n2: Pulseless VT\n3: PEA\n4: Asystole\n\n現在: ${current}`, 
+    rhythms.indexOf(current) + 1);
+  
+  if (selected) {
+    const num = parseInt(selected);
+    if (num >= 1 && num <= 4) {
+      state.cpaEvents[idx].rhythm = rhythms[num - 1];
+      renderCpaEvents();
+      save();
+    }
+  }
+}
+
+function calcFlowTimes(idx) {
+  const event = state.cpaEvents[idx];
+  if (!event) return;
+  
+  const noFlowEl = document.getElementById(`no_flow_time_${idx}`);
+  const lowFlowEl = document.getElementById(`low_flow_time_${idx}`);
+  
+  if (!noFlowEl || !lowFlowEl) return;
+  
+  // No Flow Time: 心停止〜CPR開始
+  if (event.arrestTime && event.cprStart) {
+    const arrest = parseTime(event.arrestTime);
+    const cpr = parseTime(event.cprStart);
+    if (arrest && cpr) {
+      const diff = (cpr - arrest) / 60000; // minutes
+      noFlowEl.textContent = diff >= 0 ? `${Math.round(diff)} 分` : '-- 分';
+    }
+  } else {
+    noFlowEl.textContent = '-- 分';
+  }
+  
+  // Low Flow Time: CPR開始〜ROSC
+  if (event.cprStart && event.roscTime) {
+    const cpr = parseTime(event.cprStart);
+    const rosc = parseTime(event.roscTime);
+    if (cpr && rosc) {
+      const diff = (rosc - cpr) / 60000; // minutes
+      lowFlowEl.textContent = diff >= 0 ? `${Math.round(diff)} 分` : '-- 分';
+    }
+  } else {
+    lowFlowEl.textContent = '-- 分';
+  }
+}
+
+function parseTime(timeStr) {
+  if (!timeStr) return null;
+  const [h, m] = timeStr.split(':').map(Number);
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m);
+}
+
+function renderCpaEvents() {
+  const container = $('#cpaEventsContainer');
+  if (!container) return;
+  
+  container.innerHTML = '';
+  
+  if (state.cpaEvents.length === 0) {
+    container.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">心停止イベントを追加してください</div>';
+    return;
+  }
+  
+  state.cpaEvents.forEach((event, idx) => {
+    const card = document.createElement('div');
+    card.style.cssText = 'border:1px solid var(--line);border-radius:10px;margin-bottom:12px;overflow:hidden;background:#fff';
+    
+    const isFirst = idx === 0;
+    
+    card.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:#f9fafb;border-bottom:1px solid var(--line);">
+        <div style="font-weight:600;font-size:14px;">心停止イベント ${idx + 1}${!isFirst ? '（再心停止）' : ''}${event.roscTime ? ' (ROSC)' : ''}</div>
+        <button onclick="deleteCpaEvent(${idx})" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:500;">削除</button>
+      </div>
+      <div style="padding:12px;">
+        ${isFirst ? `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+          <div>
+            <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px;">心停止時刻</label>
+            <div style="display:flex;gap:6px;">
+              <input type="time" value="${event.arrestTime}" onchange="updateCpaEventField(${idx}, 'arrestTime', this.value)" style="flex:1;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:14px;">
+              <button onclick="setCpaEventNow(${idx}, 'arrestTime')" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:8px 12px;font-size:12px;white-space:nowrap;">Now</button>
+            </div>
+          </div>
+          <div>
+            <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px;">初期波形</label>
+            <div onclick="openCpaRhythmDialog(${idx})" style="border:1px solid var(--line);border-radius:6px;padding:8px;text-align:center;cursor:pointer;background:#fafafa;">
+              <div style="font-size:14px;font-weight:500;">${event.rhythm}</div>
+            </div>
+          </div>
+        </div>
+        
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+          <div onclick="toggleCpaField(${idx}, 'witnessed')" style="border:1.5px solid ${event.witnessed ? '#4ade80' : 'var(--line)'};background:${event.witnessed ? '#dcfce7' : 'var(--chip)'};border-radius:8px;padding:10px;text-align:center;cursor:pointer;font-size:13px;font-weight:500;color:${event.witnessed ? '#15803d' : 'var(--ink)'};">
+            ${event.witnessed ? '目撃あり' : '目撃なし'}
+          </div>
+          <div onclick="toggleCpaField(${idx}, 'bystander')" style="border:1.5px solid ${event.bystander ? '#4ade80' : 'var(--line)'};background:${event.bystander ? '#dcfce7' : 'var(--chip)'};border-radius:8px;padding:10px;text-align:center;cursor:pointer;font-size:13px;font-weight:500;color:${event.bystander ? '#15803d' : 'var(--ink)'};">
+            ${event.bystander ? 'バイスタンダーCPRあり' : 'バイスタンダーCPRなし'}
+          </div>
+        </div>
+        
+        <h4 style="margin:12px 0 8px 0;font-size:13px;color:var(--muted);">蘇生処置</h4>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+          <div>
+            <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px;">胸骨圧迫開始</label>
+            <div style="display:flex;gap:6px;">
+              <input type="time" value="${event.cprStart}" onchange="updateCpaEventField(${idx}, 'cprStart', this.value)" style="flex:1;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:14px;">
+              <button onclick="setCpaEventNow(${idx}, 'cprStart')" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:8px 12px;font-size:12px;white-space:nowrap;">Now</button>
+            </div>
+          </div>
+          <div>
+            <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px;">末梢確保</label>
+            <div style="display:flex;gap:6px;">
+              <input type="time" value="${event.ivTime}" onchange="updateCpaEventField(${idx}, 'ivTime', this.value)" style="flex:1;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:14px;">
+              <button onclick="setCpaEventNow(${idx}, 'ivTime')" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:8px 12px;font-size:12px;white-space:nowrap;">Now</button>
+            </div>
+          </div>
+        </div>
+        
+        <h4 style="margin:12px 0 8px 0;font-size:13px;color:var(--muted);">気道確保</h4>
+        <div style="display:flex;gap:8px;margin-bottom:12px;">
+          <label style="display:flex;align-items:center;gap:6px;padding:8px 12px;border:1px solid var(--line);border-radius:6px;cursor:pointer;background:${event.lt ? '#dcfce7' : 'var(--chip)'};flex:1;">
+            <input type="checkbox" ${event.lt ? 'checked' : ''} onchange="updateCpaEventField(${idx}, 'lt', this.checked)" style="width:16px;height:16px;">
+            <span style="font-size:13px;">LT挿入</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;padding:8px 12px;border:1px solid var(--line);border-radius:6px;cursor:pointer;background:${event.intubation ? '#dcfce7' : 'var(--chip)'};flex:1;">
+            <input type="checkbox" ${event.intubation ? 'checked' : ''} onchange="updateCpaEventField(${idx}, 'intubation', this.checked); renderCpaEvents();" style="width:16px;height:16px;">
+            <span style="font-size:13px;">気管挿管</span>
+          </label>
+        </div>
+        ${event.intubation ? `
+        <div style="margin-bottom:12px;">
+          <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px;">挿管時刻</label>
+          <div style="display:flex;gap:6px;">
+            <input type="time" value="${event.intubationTime}" onchange="updateCpaEventField(${idx}, 'intubationTime', this.value)" style="flex:1;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:14px;">
+            <button onclick="setCpaEventNow(${idx}, 'intubationTime')" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:8px 12px;font-size:12px;white-space:nowrap;">Now</button>
+          </div>
+        </div>` : ''}
+        ` : `
+        <div style="margin-bottom:12px;">
+          <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px;">心停止時刻</label>
+          <div style="display:flex;gap:6px;">
+            <input type="time" value="${event.arrestTime}" onchange="updateCpaEventField(${idx}, 'arrestTime', this.value)" style="flex:1;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:14px;">
+            <button onclick="setCpaEventNow(${idx}, 'arrestTime')" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:8px 12px;font-size:12px;white-space:nowrap;">Now</button>
+          </div>
+        </div>
+        <div style="margin-bottom:12px;">
+          <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px;">波形</label>
+          <div onclick="openCpaRhythmDialog(${idx})" style="border:1px solid var(--line);border-radius:6px;padding:8px;text-align:center;cursor:pointer;background:#fafafa;">
+            <div style="font-size:14px;font-weight:500;">${event.rhythm}</div>
+          </div>
+        </div>
+        `}
+        
+        <h4 style="margin:12px 0 8px 0;font-size:13px;color:var(--muted);">アドレナリン投与</h4>
+        <div id="adrenaline_times_${idx}" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;"></div>
+        <button onclick="addAdrenalineTime(${idx})" style="background:var(--chip);border:1px solid var(--line);border-radius:6px;padding:8px 12px;font-size:12px;width:100%;">＋ アドレナリン追加</button>
+        
+        <h4 style="margin:12px 0 8px 0;font-size:13px;color:var(--muted);">アミオダロン投与</h4>
+        <div id="amiodarone_times_${idx}" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;"></div>
+        <button onclick="addAmiodaroneTime(${idx})" style="background:var(--chip);border:1px solid var(--line);border-radius:6px;padding:8px 12px;font-size:12px;width:100%;">＋ アミオダロン追加</button>
+        
+        <h4 style="margin:12px 0 8px 0;font-size:13px;color:var(--muted);">アトロピン投与</h4>
+        <div id="atropine_times_${idx}" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;"></div>
+        <button onclick="addAtropineTime(${idx})" style="background:var(--chip);border:1px solid var(--line);border-radius:6px;padding:8px 12px;font-size:12px;width:100%;">＋ アトロピン追加</button>
+        
+        <h4 style="margin:12px 0 8px 0;font-size:13px;color:var(--muted);">PCPS</h4>
+        <div style="margin-bottom:12px;">
+          <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px;">PCPS導入時刻</label>
+          <div style="display:flex;gap:6px;">
+            <input type="time" value="${event.pcpsTime || ''}" onchange="updateCpaEventField(${idx}, 'pcpsTime', this.value)" style="flex:1;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:14px;">
+            <button onclick="setCpaEventNow(${idx}, 'pcpsTime')" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:8px 12px;font-size:12px;white-space:nowrap;">Now</button>
+          </div>
+        </div>
+        
+        <h4 style="margin:12px 0 8px 0;font-size:13px;color:var(--muted);">転帰</h4>
+        <div style="margin-bottom:12px;">
+          <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px;">心拍再開(ROSC)時刻</label>
+          <div style="display:flex;gap:6px;">
+            <input type="time" value="${event.roscTime}" onchange="updateCpaEventField(${idx}, 'roscTime', this.value)" style="flex:1;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:14px;">
+            <button onclick="setCpaEventNow(${idx}, 'roscTime')" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:8px 12px;font-size:12px;white-space:nowrap;">Now</button>
+          </div>
+        </div>
+        
+        ${isFirst ? `
+        <div style="padding:12px;background:#f0f9ff;border:1px solid #0ea5e9;border-radius:8px;margin-bottom:12px;">
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+            <span style="font-weight:600;color:#0369a1;font-size:12px;">No Flow Time</span>
+            <span id="no_flow_time_${idx}" style="font-weight:600;color:#0369a1;font-size:12px;">-- 分</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;">
+            <span style="font-weight:600;color:#0369a1;font-size:12px;">Low Flow Time</span>
+            <span id="low_flow_time_${idx}" style="font-weight:600;color:#0369a1;font-size:12px;">-- 分</span>
+          </div>
+        </div>
+        ` : `
+        <div style="padding:12px;background:#f0f9ff;border:1px solid #0ea5e9;border-radius:8px;margin-bottom:12px;">
+          <div style="display:flex;justify-content:space-between;">
+            <span style="font-weight:600;color:#0369a1;font-size:12px;">Low Flow Time</span>
+            <span id="low_flow_time_${idx}" style="font-weight:600;color:#0369a1;font-size:12px;">-- 分</span>
+          </div>
+        </div>
+        `}
+        
+        <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px;">メモ</label>
+        <textarea rows="2" placeholder="このイベントに関するメモ" onchange="updateCpaEventField(${idx}, 'memo', this.value)" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:13px;resize:none;">${event.memo}</textarea>
+      </div>
+    `;
+    
+    container.appendChild(card);
+    
+    // アドレナリン投与時刻を描画
+    const adrContainer = card.querySelector(`#adrenaline_times_${idx}`);
+    if (adrContainer && event.adrenalineTimes) {
+      event.adrenalineTimes.forEach((time, adrIdx) => {
+        const adrDiv = document.createElement('div');
+        adrDiv.style.cssText = 'display:flex;gap:4px;align-items:center;';
+        adrDiv.innerHTML = `
+          <span style="font-size:11px;color:var(--muted);">${adrIdx + 1}回目</span>
+          <input type="time" value="${time}" onchange="updateAdrenalineTime(${idx}, ${adrIdx}, this.value)" style="padding:4px 6px;border:1px solid var(--line);border-radius:4px;font-size:12px;">
+          <button onclick="deleteAdrenalineTime(${idx}, ${adrIdx})" style="background:#fee2e2;color:#dc2626;border:none;border-radius:4px;padding:4px 8px;font-size:11px;">×</button>
+        `;
+        adrContainer.appendChild(adrDiv);
+      });
+    }
+    
+    // アミオダロン投与時刻を描画
+    const amiodaroneContainer = card.querySelector(`#amiodarone_times_${idx}`);
+    if (amiodaroneContainer && event.amiodaroneTimes) {
+      event.amiodaroneTimes.forEach((time, adrIdx) => {
+        const adrDiv = document.createElement('div');
+        adrDiv.style.cssText = 'display:flex;gap:4px;align-items:center;';
+        adrDiv.innerHTML = `
+          <span style="font-size:11px;color:var(--muted);">${adrIdx + 1}回目</span>
+          <input type="time" value="${time}" onchange="updateAmiodaroneTime(${idx}, ${adrIdx}, this.value)" style="padding:4px 6px;border:1px solid var(--line);border-radius:4px;font-size:12px;">
+          <button onclick="deleteAmiodaroneTime(${idx}, ${adrIdx})" style="background:#fee2e2;color:#dc2626;border:none;border-radius:4px;padding:4px 8px;font-size:11px;">×</button>
+        `;
+        amiodaroneContainer.appendChild(adrDiv);
+      });
+    }
+    
+    // アトロピン投与時刻を描画
+    const atropineContainer = card.querySelector(`#atropine_times_${idx}`);
+    if (atropineContainer && event.atropineTimes) {
+      event.atropineTimes.forEach((time, adrIdx) => {
+        const adrDiv = document.createElement('div');
+        adrDiv.style.cssText = 'display:flex;gap:4px;align-items:center;';
+        adrDiv.innerHTML = `
+          <span style="font-size:11px;color:var(--muted);">${adrIdx + 1}回目</span>
+          <input type="time" value="${time}" onchange="updateAtropineTime(${idx}, ${adrIdx}, this.value)" style="padding:4px 6px;border:1px solid var(--line);border-radius:4px;font-size:12px;">
+          <button onclick="deleteAtropineTime(${idx}, ${adrIdx})" style="background:#fee2e2;color:#dc2626;border:none;border-radius:4px;padding:4px 8px;font-size:11px;">×</button>
+        `;
+        atropineContainer.appendChild(adrDiv);
+      });
+    }
+    
+    // Flow Time計算
+    calcFlowTimes(idx);
+  });
+}
+
+// CPAタブ選択時にバイタルをCPA初期値に設定
+function setCpaVitalDefaults() {
+  if (!confirm('CPAモードに切り替えます。\nバイタルサインをCPA初期値（BP:-/-, HR:-, RR:-, SpO2:測定不能, BT:実測値, GCS:E1V1M1）に設定しますか？')) {
+    return;
+  }
+  
+  state.vitals.forEach(v => {
+    v.sbp = 0;
+    v.dbp = 0;
+    v.hr = 0;
+    v.rr = 0;
+    v.spo2 = 0;
+    // BTは実測値を保持（0に設定しない）
+    // v.bt = v.bt; // 既存の値を保持
+    v.gcs = { e: 1, v: 1, m: 1 };
+  });
+  
+  renderVitals();
+  save();
+}
+
 function init() {
   load();
   bindInputs();
@@ -3212,6 +3680,7 @@ function init() {
   initVitalImageReader();
   mountChips();
   initStroke();
+  initCpaEvents();
   bindMemos();
   initLabs();
   initLabOCR();
