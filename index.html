@@ -558,6 +558,28 @@ select {
   <div class="tab-content" data-tab="exam">
     <div class="card">
       <h2>💓 バイタルサイン</h2>
+      
+      <!-- モニター画像読み取り -->
+      <div style="border:1px solid #c4b5fd;border-radius:10px;padding:12px;margin-bottom:12px;background:#faf5ff">
+        <button class="btn btn-sm btn-primary" id="vitalImageBtn" style="width:100%">
+          📷 モニター画面を読み取る
+        </button>
+        <input type="file" id="vitalImageInput" accept="image/*" capture="environment" style="display:none">
+        <div id="vitalReadStatus" class="small mt-2" style="display:none"></div>
+      </div>
+      
+      <!-- 読み取り結果表示エリア -->
+      <div id="vitalReadResult" style="display:none;margin-bottom:12px">
+        <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <h3 style="margin:0;color:#16a34a;font-size:14px;">📊 読み取り結果</h3>
+            <button class="btn btn-sm" id="vitalReadClear" style="background:#fee2e2;color:#dc2626;padding:4px 10px;min-height:28px;">クリア</button>
+          </div>
+          <div id="vitalReadData" class="vital-grid" style="margin-bottom:10px"></div>
+          <button class="btn btn-sm btn-success btn-block" id="vitalApplyBtn">バイタルに追加</button>
+        </div>
+      </div>
+      
       <div id="vitalsContainer"></div>
       <button class="btn btn-primary btn-block mt-2" id="addVitalBtn">＋ バイタル追加</button>
     </div>
@@ -1302,6 +1324,245 @@ function renderVitals() {
       });
     });
   });
+}
+
+// バイタルサイン画像読み取り機能
+let vitalReadData = null; // 読み取ったバイタルデータを一時保存
+
+function initVitalImageReader() {
+  const imageBtn = $('#vitalImageBtn');
+  const imageInput = $('#vitalImageInput');
+  const statusDiv = $('#vitalReadStatus');
+  const resultArea = $('#vitalReadResult');
+  const clearBtn = $('#vitalReadClear');
+  const applyBtn = $('#vitalApplyBtn');
+  
+  if (!imageBtn || !imageInput) {
+    console.error('Vital image reader elements not found');
+    return;
+  }
+  
+  // 画像読み取りボタン
+  imageBtn.addEventListener('click', () => {
+    const apiKey = localStorage.getItem('gemini_api_key') || '';
+    if (!apiKey) {
+      statusDiv.style.display = 'block';
+      statusDiv.textContent = '⚠️ Gemini APIキーが設定されていません。検査タブの「⚙️ API設定」から設定してください。';
+      statusDiv.style.color = '#f59e0b';
+      return;
+    }
+    imageInput.click();
+  });
+  
+  // ファイル選択時
+  imageInput.addEventListener('change', async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    
+    const apiKey = localStorage.getItem('gemini_api_key') || '';
+    if (!apiKey) {
+      alert('APIキーが設定されていません');
+      return;
+    }
+    
+    statusDiv.style.display = 'block';
+    statusDiv.textContent = '📷 モニター画面を解析中...';
+    statusDiv.style.color = '#2563eb';
+    
+    try {
+      // 撮影時刻を取得
+      const captureTime = new Date();
+      const captureTimeStr = `${String(captureTime.getHours()).padStart(2, '0')}:${String(captureTime.getMinutes()).padStart(2, '0')}`;
+      
+      // 画像をBase64に変換
+      const base64 = await fileToBase64(file);
+      const base64Data = base64.split(',')[1];
+      
+      console.log('Reading vital signs from monitor image...');
+      
+      // Gemini API呼び出し
+      const result = await callVitalGeminiAPI(apiKey, base64Data);
+      console.log('Vital read result:', result);
+      
+      if (result && result.vitals) {
+        vitalReadData = {
+          time: captureTimeStr,
+          ...result.vitals
+        };
+        
+        renderVitalReadResult();
+        statusDiv.style.display = 'block';
+        statusDiv.textContent = `✅ モニター画面を読み取りました（撮影時刻: ${captureTimeStr}）`;
+        statusDiv.style.color = '#22c55e';
+      } else {
+        statusDiv.style.display = 'block';
+        statusDiv.textContent = '⚠️ バイタルサインを読み取れませんでした';
+        statusDiv.style.color = '#f59e0b';
+      }
+    } catch (err) {
+      console.error('Error reading vital signs:', err);
+      statusDiv.style.display = 'block';
+      statusDiv.textContent = '❌ エラー: ' + (err.message || '不明なエラー');
+      statusDiv.style.color = '#ef4444';
+    } finally {
+      imageInput.value = '';
+    }
+  });
+  
+  // クリアボタン
+  clearBtn.addEventListener('click', () => {
+    vitalReadData = null;
+    resultArea.style.display = 'none';
+    statusDiv.style.display = 'none';
+  });
+  
+  // バイタルに追加ボタン
+  applyBtn.addEventListener('click', () => {
+    if (!vitalReadData) return;
+    
+    // 新しいバイタルとして追加
+    const newVital = {
+      time: vitalReadData.time,
+      sbp: vitalReadData.sbp || 120,
+      dbp: vitalReadData.dbp || 80,
+      hr: vitalReadData.hr || 72,
+      rr: vitalReadData.rr || 16,
+      spo2: vitalReadData.spo2 || 98,
+      bt: vitalReadData.bt || 36.6,
+      gcs: { e: 4, v: 5, m: 6 } // GCSはモニターに出ないのでデフォルト値
+    };
+    
+    state.vitals.push(newVital);
+    renderVitals();
+    save();
+    
+    // 結果エリアをクリア
+    vitalReadData = null;
+    resultArea.style.display = 'none';
+    statusDiv.style.display = 'block';
+    statusDiv.textContent = '✅ バイタルに追加しました';
+    statusDiv.style.color = '#22c55e';
+    
+    setTimeout(() => {
+      statusDiv.style.display = 'none';
+    }, 2000);
+  });
+  
+  console.log('Vital image reader initialized');
+}
+
+// ファイルをBase64に変換
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// Gemini APIでバイタルサインを読み取り
+async function callVitalGeminiAPI(apiKey, imageBase64) {
+  const prompt = `医療用モニター画面の画像から、バイタルサインを読み取ってください。
+
+【読み取り対象】
+- 血圧（BP）: 収縮期/拡張期（例: 120/80）
+- 脈拍（HR/PR/心拍数）: 拍数/分（例: 75）
+- 呼吸数（RR/RESP）: 回数/分（例: 16）
+- SpO2（酸素飽和度）: パーセント（例: 98）
+- 体温（BT/TEMP）: 摂氏温度（例: 36.5）※表示されている場合のみ
+
+【重要な注意点】
+- モニター画面に表示されている数値のみを読み取る
+- 表示されていない項目は出力しない
+- 数値のみを抽出（単位は除去）
+- 血圧は収縮期(sbp)と拡張期(dbp)に分けて出力
+
+【出力JSON形式】
+{
+  "vitals": {
+    "sbp": 120,
+    "dbp": 80,
+    "hr": 75,
+    "rr": 16,
+    "spo2": 98,
+    "bt": 36.5
+  }
+}
+
+※表示されていない項目は省略してください
+※JSONのみを出力し、説明文は不要です`;
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${apiKey}`;
+  
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{
+        parts: [
+          {
+            inline_data: {
+              mime_type: 'image/jpeg',
+              data: imageBase64
+            }
+          },
+          { text: prompt }
+        ]
+      }]
+    })
+  });
+  
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error?.message || `API error: ${response.status}`);
+  }
+  
+  const data = await response.json();
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  
+  // JSONを抽出
+  let jsonText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+  
+  try {
+    const parsed = JSON.parse(jsonText);
+    return parsed;
+  } catch (e) {
+    console.error('JSON parse error:', e, 'Text:', jsonText);
+    throw new Error('APIからの応答を解析できませんでした');
+  }
+}
+
+// 読み取り結果を表示
+function renderVitalReadResult() {
+  const resultArea = $('#vitalReadResult');
+  const dataDiv = $('#vitalReadData');
+  
+  if (!vitalReadData) {
+    resultArea.style.display = 'none';
+    return;
+  }
+  
+  resultArea.style.display = 'block';
+  
+  const items = [];
+  if (vitalReadData.sbp && vitalReadData.dbp) {
+    items.push(`<b>BP</b><div>${vitalReadData.sbp}/${vitalReadData.dbp} <span class="unit">mmHg</span></div>`);
+  }
+  if (vitalReadData.hr) {
+    items.push(`<b>HR</b><div>${vitalReadData.hr} <span class="unit">/min</span></div>`);
+  }
+  if (vitalReadData.rr) {
+    items.push(`<b>RR</b><div>${vitalReadData.rr} <span class="unit">/min</span></div>`);
+  }
+  if (vitalReadData.spo2) {
+    items.push(`<b>SpO₂</b><div>${vitalReadData.spo2} <span class="unit">%</span></div>`);
+  }
+  if (vitalReadData.bt) {
+    items.push(`<b>BT</b><div>${vitalReadData.bt} <span class="unit">℃</span></div>`);
+  }
+  
+  dataDiv.innerHTML = items.join('');
 }
 
 function vitalText() {
@@ -2833,6 +3094,7 @@ function init() {
   load();
   bindInputs();
   initVitals();
+  initVitalImageReader();
   mountChips();
   initStroke();
   bindMemos();
