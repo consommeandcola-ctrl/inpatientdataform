@@ -500,7 +500,6 @@ select {
 </header>
 
 <main>
-  <!-- タブ1: 病歴 -->
   <div class="tab-content active" data-tab="history">
     <div class="card">
       <h2>📋 基本情報・病歴</h2>
@@ -554,12 +553,10 @@ select {
     </div>
   </div>
 
-  <!-- タブ2: 所見 -->
   <div class="tab-content" data-tab="exam">
     <div class="card">
       <h2>💓 バイタルサイン</h2>
       
-      <!-- モニター画像読み取り -->
       <div style="border:1px solid #c4b5fd;border-radius:10px;padding:12px;margin-bottom:12px;background:#faf5ff">
         <button class="btn btn-sm btn-primary" id="vitalImageBtn" style="width:100%">
           📷 モニター画面を読み取る
@@ -571,7 +568,6 @@ select {
         <div id="vitalReadStatus" class="small mt-2" style="display:none"></div>
       </div>
       
-      <!-- 読み取り結果表示エリア -->
       <div id="vitalReadResult" style="display:none;margin-bottom:12px">
         <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:12px">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
@@ -601,7 +597,6 @@ select {
         <div class="exam-tab" data-exam="cpa">CPA</div>
       </div>
 
-      <!-- 汎用 -->
       <div class="exam-pane active" data-pane="general">
         <h3>頭頚部</h3>
         <div class="chips" id="gen-head"></div>
@@ -634,7 +629,6 @@ select {
         <p class="small">タップで切替: 未選択→(+)→なし→未選択</p>
       </div>
 
-      <!-- 外傷 -->
       <div class="exam-pane" data-pane="trauma">
         <h3>頭部・顔面</h3>
         <div class="chips" id="tra-head"></div>
@@ -669,7 +663,6 @@ select {
         </div>
       </div>
 
-      <!-- 脳梗塞 -->
       <div class="exam-pane" data-pane="stroke">
         <h3>脳神経 II–XII</h3>
         <div class="chips" id="str-cn"></div>
@@ -720,7 +713,6 @@ select {
         </details>
       </div>
 
-      <!-- CPA -->
       <div class="exam-pane" data-pane="cpa">
         <div style="background:#fee2e2;border:1px solid #f87171;border-radius:10px;padding:12px;margin-bottom:12px">
           <p style="margin:0;color:#b91c1c;font-size:13px;font-weight:500;">
@@ -735,12 +727,10 @@ select {
     </div>
   </div>
 
-  <!-- タブ3: 検査 -->
   <div class="tab-content" data-tab="lab">
     <div class="card">
       <h2>🔬 検査</h2>
       
-      <!-- テキスト貼り付け・画像読み取り機能 -->
       <div class="ocr-section mb-2" style="border:1px solid #c4b5fd;border-radius:10px;padding:12px;background:#faf5ff">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
           <button class="btn btn-sm btn-outline" id="labPasteBtn">
@@ -764,7 +754,6 @@ select {
         <div id="pasteStatus" class="small mt-2" style="display:none"></div>
       </div>
       
-      <!-- 読み取り結果の確認・編集エリア -->
       <div id="ocrResultArea" style="display:none;margin-bottom:12px">
         <div style="background:#f5f3ff;border:1px solid #c4b5fd;border-radius:8px;padding:12px">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
@@ -819,7 +808,6 @@ select {
     </div>
   </div>
 
-  <!-- タブ4: 感染・画像 -->
   <div class="tab-content" data-tab="image">
     <div class="card">
       <h2>🦠 感染症検査</h2>
@@ -881,7 +869,6 @@ select {
     </div>
   </div>
 
-  <!-- タブ5: 評価 -->
   <div class="tab-content" data-tab="assess">
     <div class="card">
       <h2>📝 プロブレムリスト</h2>
@@ -912,7 +899,6 @@ select {
     </div>
   </div>
 
-  <!-- タブ6: 出力 -->
   <div class="tab-content" data-tab="output">
     <div class="card">
       <h2>📄 入院サマリ</h2>
@@ -953,7 +939,6 @@ select {
   </div>
 </nav>
 
-<!-- Gemini API設定モーダル -->
 <div id="geminiModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:200;overflow-y:auto;-webkit-overflow-scrolling:touch">
   <div style="min-height:100%;display:flex;align-items:center;justify-content:center;padding:20px;padding-top:calc(20px + env(safe-area-inset-top));padding-bottom:calc(20px + env(safe-area-inset-bottom));padding-left:calc(20px + env(safe-area-inset-left));padding-right:calc(20px + env(safe-area-inset-right))">
     <div style="background:#fff;border-radius:16px;padding:24px;max-width:500px;width:100%;box-shadow:0 20px 25px -5px rgba(0,0,0,0.1)">
@@ -1149,7 +1134,7 @@ function switchExamTab(exam) {
       setTimeout(() => {
         const container = $('#cpaEventsContainer');
         if (container && container.children.length > 0) {
-          container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          container.children[container.children.length - 1].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
       }, 100);
     }
@@ -1237,7 +1222,7 @@ function renderVitals() {
     card.className = 'vital-card';
     card.style.cssText = 'border:1px solid var(--line);border-radius:10px;margin-bottom:10px;overflow:hidden;';
     
-    const gcsSum = v.gcs.v === 'T' ? `${v.gcs.e + v.gcs.m}T` : (v.gcs.e + v.gcs.v + v.gcs.m);
+    const gcsSum = v.gcs.v === 'T' ? `${v.gcs.e + v.gcs.m}T` : (v.gcs.e + (typeof v.gcs.v === 'string' ? Number(v.gcs.v) : v.gcs.v) + v.gcs.m);
     
     card.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:#f9fafb;border-bottom:1px solid var(--line);">
@@ -1287,6 +1272,7 @@ function renderVitals() {
     // セレクトボックスにオプションを設定
     const fillSelect = (field, from, to, step = 1) => {
       const sel = card.querySelector(`select[data-field="${field}"]`);
+      if (!sel) return;
       for (let i = from; i <= to; i += step) {
         const val = step < 1 ? i.toFixed(1) : String(i);
         sel.appendChild(new Option(val, val));
@@ -1301,52 +1287,64 @@ function renderVitals() {
     fillSelect('bt', 30, 42, 0.1);
     
     const gcsE = card.querySelector('select[data-field="gcsE"]');
-    [4, 3, 2, 1].forEach(n => gcsE.appendChild(new Option(n, n)));
+    if (gcsE) [4, 3, 2, 1].forEach(n => gcsE.appendChild(new Option(n, n)));
     
     const gcsV = card.querySelector('select[data-field="gcsV"]');
-    ['5', '4', '3', '2', '1', 'T'].forEach(n => gcsV.appendChild(new Option(n, n)));
+    if (gcsV) ['5', '4', '3', '2', '1', 'T'].forEach(n => gcsV.appendChild(new Option(n, n)));
     
     const gcsM = card.querySelector('select[data-field="gcsM"]');
-    [6, 5, 4, 3, 2, 1].forEach(n => gcsM.appendChild(new Option(n, n)));
+    if (gcsM) [6, 5, 4, 3, 2, 1].forEach(n => gcsM.appendChild(new Option(n, n)));
     
     // 値を設定
-    card.querySelector('select[data-field="sbp"]').value = v.sbp;
-    card.querySelector('select[data-field="dbp"]').value = v.dbp;
-    card.querySelector('select[data-field="hr"]').value = v.hr;
-    card.querySelector('select[data-field="rr"]').value = v.rr;
-    card.querySelector('select[data-field="spo2"]').value = v.spo2;
-    card.querySelector('select[data-field="bt"]').value = v.bt.toFixed ? v.bt.toFixed(1) : v.bt;
-    card.querySelector('select[data-field="gcsE"]').value = v.gcs.e;
-    card.querySelector('select[data-field="gcsV"]').value = v.gcs.v === 'T' ? 'T' : v.gcs.v;
-    card.querySelector('select[data-field="gcsM"]').value = v.gcs.m;
+    if (card.querySelector('select[data-field="sbp"]')) card.querySelector('select[data-field="sbp"]').value = v.sbp;
+    if (card.querySelector('select[data-field="dbp"]')) card.querySelector('select[data-field="dbp"]').value = v.dbp;
+    if (card.querySelector('select[data-field="hr"]')) card.querySelector('select[data-field="hr"]').value = v.hr;
+    if (card.querySelector('select[data-field="rr"]')) card.querySelector('select[data-field="rr"]').value = v.rr;
+    if (card.querySelector('select[data-field="spo2"]')) card.querySelector('select[data-field="spo2"]').value = v.spo2;
+    if (card.querySelector('select[data-field="bt"]')) card.querySelector('select[data-field="bt"]').value = v.bt.toFixed ? v.bt.toFixed(1) : v.bt;
+    if (card.querySelector('select[data-field="gcsE"]')) card.querySelector('select[data-field="gcsE"]').value = v.gcs.e;
+    if (card.querySelector('select[data-field="gcsV"]')) card.querySelector('select[data-field="gcsV"]').value = v.gcs.v === 'T' ? 'T' : v.gcs.v;
+    if (card.querySelector('select[data-field="gcsM"]')) card.querySelector('select[data-field="gcsM"]').value = v.gcs.m;
     
     // イベントリスナー
-    card.querySelector('input[data-field="time"]').addEventListener('change', (e) => {
-      state.vitals[idx].time = e.target.value;
-      save();
-    });
+    const timeInput = card.querySelector('input[data-field="time"]');
+    if (timeInput) {
+      timeInput.addEventListener('change', (e) => {
+        state.vitals[idx].time = e.target.value;
+        save();
+      });
+    }
     
     ['sbp', 'dbp', 'hr', 'rr', 'spo2'].forEach(field => {
-      card.querySelector(`select[data-field="${field}"]`).addEventListener('change', (e) => {
-        state.vitals[idx][field] = Number(e.target.value);
-        save();
-      });
+      const sel = card.querySelector(`select[data-field="${field}"]`);
+      if (sel) {
+        sel.addEventListener('change', (e) => {
+          state.vitals[idx][field] = Number(e.target.value);
+          save();
+        });
+      }
     });
     
-    card.querySelector('select[data-field="bt"]').addEventListener('change', (e) => {
-      state.vitals[idx].bt = Number(e.target.value);
-      save();
-    });
+    const btSel = card.querySelector('select[data-field="bt"]');
+    if (btSel) {
+      btSel.addEventListener('change', (e) => {
+        state.vitals[idx].bt = Number(e.target.value);
+        save();
+      });
+    }
     
     ['gcsE', 'gcsV', 'gcsM'].forEach(field => {
-      card.querySelector(`select[data-field="${field}"]`).addEventListener('change', (e) => {
-        const gE = Number(card.querySelector('select[data-field="gcsE"]').value);
-        const gV = card.querySelector('select[data-field="gcsV"]').value;
-        const gM = Number(card.querySelector('select[data-field="gcsM"]').value);
-        state.vitals[idx].gcs = { e: gE, v: gV === 'T' ? 'T' : Number(gV), m: gM };
-        renderVitals();
-        save();
-      });
+      const sel = card.querySelector(`select[data-field="${field}"]`);
+      if (sel) {
+        sel.addEventListener('change', (e) => {
+          const gE = Number(card.querySelector('select[data-field="gcsE"]').value);
+          const gV = card.querySelector('select[data-field="gcsV"]').value;
+          const gM = Number(card.querySelector('select[data-field="gcsM"]').value);
+          state.vitals[idx].gcs = { e: gE, v: gV === 'T' ? 'T' : Number(gV), m: gM };
+          renderVitals();
+          save();
+        });
+      }
     });
   });
 }
@@ -1451,14 +1449,20 @@ function initVitalImageReader() {
   applyBtn.addEventListener('click', () => {
     if (!vitalReadData) return;
     
+    // 編集された値を取得
+    const editHr = $('#editHr')?.value;
+    const editSbp = $('#editSbp')?.value;
+    const editDbp = $('#editDbp')?.value;
+    const editSpo2 = $('#editSpo2')?.value;
+
     // 新しいバイタルとして追加
     const newVital = {
       time: vitalReadData.time,
-      sbp: vitalReadData.sbp || 120,
-      dbp: vitalReadData.dbp || 80,
-      hr: vitalReadData.hr || 72,
+      sbp: editSbp ? Number(editSbp) : 120,
+      dbp: editDbp ? Number(editDbp) : 80,
+      hr: editHr ? Number(editHr) : 72,
       rr: 16, // モニター読み取りでは取得しないのでデフォルト値
-      spo2: vitalReadData.spo2 || 98,
+      spo2: editSpo2 ? Number(editSpo2) : 98,
       bt: 36.6, // モニター読み取りでは取得しないのでデフォルト値
       gcs: { e: 4, v: 5, m: 6 }
     };
@@ -1594,9 +1598,9 @@ function renderVitalReadResult() {
   if (timeInput) {
     timeInput.value = vitalReadData.time;
     // 時刻変更時にvitalReadDataも更新
-    timeInput.addEventListener('input', (e) => {
+    timeInput.oninput = (e) => {
       vitalReadData.time = e.target.value;
-    });
+    };
   }
   
   const items = [];
@@ -1642,13 +1646,13 @@ function renderVitalReadResult() {
   const updateValue = (id, field) => {
     const input = document.getElementById(id);
     if (input) {
-      input.addEventListener('input', (e) => {
+      input.oninput = (e) => {
         const value = parseFloat(e.target.value);
         if (!isNaN(value)) {
           vitalReadData[field] = value;
           console.log(`Updated ${field}:`, value);
         }
-      });
+      };
     }
   };
   
@@ -1664,7 +1668,9 @@ function vitalText() {
   return state.vitals.map((v, idx) => {
     const isCpaMode = state.examTab === 'cpa' || (v.sbp === 0 && v.hr === 0 && v.rr === 0);
     const g = v.gcs;
-    const gTxt = g.v === 'T' ? `E${g.e}VTM${g.m}` : `E${g.e}V${g.v}M${g.m}(${g.e + (g.v === 'T' ? 0 : g.v) + g.m})`;
+    const gcsVVal = typeof g.v === 'string' ? g.v : (g.v || 1);
+    const gcsSum = g.v === 'T' ? `${g.e + g.m}T` : (g.e + (typeof g.v === 'string' ? Number(g.v) : g.v) + g.m);
+    const gTxt = gcsVVal === 'T' ? `E${g.e}VTM${g.m}` : `E${g.e}V${gcsVVal}M${g.m}(${gcsSum})`;
     const timeStr = v.time ? `${v.time} ` : '';
     
     if (isCpaMode) {
@@ -2233,7 +2239,7 @@ function initGeminiAPI() {
       // 血液ガス
       'pH': 'pH',
       'PaCO2': 'PaCO2', 'pCO2': 'PaCO2',
-      'PaO2': 'PaO2', 'pO2': 'PaO2',
+      'PaO2': 'PaO2', 'pO2': 'pO2',
       'HCO3': 'HCO3-', 'HCO3-': 'HCO3-',
       'BE': 'BE',
       'Lac': 'Lac', '乳酸': 'Lac',
@@ -2249,7 +2255,7 @@ function initGeminiAPI() {
       'ビリルビン': 'ビリルビン'
     };
     
-    const normalizeLabel = (k) => LABEL_MAP[String(k || '').replace(/\s+/g, '')] || String(k || '').trim();
+    const normalizeLabel = (k) => LABEL_MAP[String(k || '').replace(/\s+/g, '').replace(/[（(].*?[)）]/g, '')] || String(k || '').trim();
     
     const prompt = `医療検査票の画像から検査値を抽出してください。
 
@@ -2379,14 +2385,14 @@ function parseLabText(text) {
   // 検査項目名 → 標準名のマッピング
   const itemMap = {
     // 生化学
-    '総タンパク': 'TP', '総蛋白': 'TP',
-    'アルブミン': 'Alb',
-    '総ビリルビン': 'T-bil',
-    '直接ビリルビン': 'D-bil',
+    '総タンパク': 'TP', '総蛋白': 'TP', 'TP': 'TP',
+    'アルブミン': 'Alb', 'Alb': 'Alb', 'ALB': 'Alb',
+    '総ビリルビン': 'T-bil', 'T-bil': 'T-bil', 'Tbil': 'T-bil', 'T-Bil': 'T-bil', 'TB': 'T-bil',
+    '直接ビリルビン': 'D-bil', 'D-bil': 'D-bil', 'Dbil': 'D-bil', 'D-Bil': 'D-bil', 'DB': 'D-bil',
     'AST': 'AST', 'GOT': 'AST', 'AST(GOT)': 'AST', 'AST (GOT)': 'AST',
     'ALT': 'ALT', 'GPT': 'ALT', 'ALT(GPT)': 'ALT', 'ALT (GPT)': 'ALT',
     'ALP': 'ALP',
-    'γGTP': 'γ-GTP', 'γ-GTP': 'γ-GTP', 'yGTP': 'γ-GTP', 'Y-GTP': 'γ-GTP',
+    'γGTP': 'γ-GTP', 'γ-GTP': 'γ-GTP', 'yGTP': 'γ-GTP', 'Y-GTP': 'γ-GTP', 'GGT': 'γ-GTP',
     'LDH': 'LDH', 'LD': 'LDH',
     'CK': 'CK', 'CPK': 'CK',
     '尿素窒素': 'BUN', 'BUN': 'BUN',
@@ -2401,12 +2407,12 @@ function parseLabText(text) {
     '尿酸': 'UA', 'UA': 'UA',
     '血糖': 'Glu', 'グルコース': 'Glu', 'Glu': 'Glu', 'BS': 'Glu',
     'CRP': 'CRP',
-    'アミラーゼ': 'Amy', 'アミラーゼ(血中)': 'Amy', 'アミラーゼ（血中）': 'Amy',
-    'リパーゼ': 'Lip',
-    '血清鉄': 'Fe', '鉄': 'Fe',
-    'フェリチン': 'Ferritin',
+    'アミラーゼ': 'Amy', 'アミラーゼ(血中)': 'Amy', 'アミラーゼ（血中）': 'Amy', 'Amy': 'Amy',
+    'リパーゼ': 'Lip', 'Lip': 'Lip',
+    '血清鉄': 'Fe', '鉄': 'Fe', 'Fe': 'Fe',
+    'フェリチン': 'Ferritin', 'Ferritin': 'Ferritin',
     
-    // 脂質
+    // 脂質（現在利用可能なのは生化学までだが、将来的な拡張のため残しておく）
     '中性脂肪': 'TG', 'TG': 'TG',
     '総コレステロール': 'T-CHO',
     'HDLコレステロール': 'HDL-C', 'HDL-C': 'HDL-C', 'HDL': 'HDL-C',
@@ -2429,6 +2435,7 @@ function parseLabText(text) {
     'Dダイマー': 'D-dimer', 'D-dimer': 'D-dimer',
     'FDP': 'FDP',
     'フィブリノゲン': 'Fib', 'Fib': 'Fib',
+    'AT3': 'AT3',
     
     // 糖尿病
     'HbA1c': 'HbA1c', 'HbA1c(NGSP)': 'HbA1c', 'HbA1c（NGSP）': 'HbA1c',
@@ -2442,25 +2449,50 @@ function parseLabText(text) {
     'HCO3-': 'HCO3-', 'HCO3': 'HCO3-',
     'BE': 'BE',
     '乳酸': 'Lac', 'Lac': 'Lac',
-    'SaO2': 'SaO2', 'SpO2': 'SaO2'
+    'SaO2': 'SaO2', 'SpO2': 'SaO2',
+    
+    // 尿定性/沈渣（競合を避けるために具体的な項目名でのみ抽出）
+    '尿pH': 'pH',
+    '尿比重': '比重',
+    '尿蛋白': '蛋白',
+    '尿糖': '糖',
+    '尿潜血': '潜血',
+    '尿ケトン体': 'ケトン',
+    '尿ウロビリノーゲン': 'ウロビリ',
+    '尿ビリルビン': 'ビリルビン',
+    '尿亜硝酸塩': '亜硝酸塩',
+    '尿白血球': '白血球',
+    '尿RBC': 'RBC', // 尿沈渣
+    '尿WBC': 'WBC', // 尿沈渣
+    '髄液細胞数': '髄液細胞数',
+    '髄液蛋白': '髄液蛋白',
+    '髄液糖': '髄液糖',
+    '髄液Cl': '髄液Cl',
   };
   
   const lines = text.split(/[\n\r]+/).map(l => l.trim()).filter(l => l);
   console.log('Lines:', lines);
   
-  // 方法1: 同じ行に項目名と数値がある場合（従来形式）
+  // マッピングのキーを正規表現で使うためにエスケープし、長い順にソート
+  const sortedKeys = Object.keys(itemMap).sort((a, b) => b.length - a.length);
+  const regex = new RegExp(`(${sortedKeys.map(escapeRegex).join('|')})`);
+  
+  // 方法1: 同じ行に項目名と数値がある場合
   for (const line of lines) {
-    for (const [itemName, standardName] of Object.entries(itemMap)) {
-      if (results[standardName]) continue;
-      
-      if (line.includes(itemName)) {
+    // 項目名を探す
+    const itemMatch = line.match(regex);
+    if (itemMatch) {
+      const itemName = itemMatch[1];
+      const standardName = itemMap[itemName];
+      if (!results[standardName]) {
         // 行末の数値を取得
-        const match = line.match(/([0-9]+\.?[0-9]*)\s*[LHlh]?\s*$/);
-        if (match) {
-          const val = parseFloat(match[1]);
+        const valueMatch = line.slice(itemMatch.index + itemName.length).match(/([0-9]+\.?[0-9]*)\s*[LHlh]?\s*$/);
+        if (valueMatch) {
+          const val = parseFloat(valueMatch[1]);
+          // 異常に大きな数値や負の数は無視
           if (!isNaN(val) && val >= 0 && val < 100000) {
-            results[standardName] = match[1];
-            console.log(`Found (same line): ${standardName} = ${match[1]}`);
+            results[standardName] = valueMatch[1];
+            console.log(`Found (same line): ${standardName} = ${valueMatch[1]}`);
           }
         }
       }
@@ -2468,7 +2500,6 @@ function parseLabText(text) {
   }
   
   // 方法2: iPhoneライブテキスト形式（項目名と数値が別の行）
-  // 「項目名の行」の次にある「数値のみの行」をペアにする
   let pendingItem = null;
   
   for (let i = 0; i < lines.length; i++) {
@@ -2476,26 +2507,14 @@ function parseLabText(text) {
     
     // この行が項目名かチェック
     let foundItem = null;
-    for (const [itemName, standardName] of Object.entries(itemMap)) {
-      if (line.includes(itemName) && !results[standardName]) {
-        foundItem = standardName;
-        break;
-      }
-    }
+    const itemMatch = line.match(regex);
     
-    if (foundItem) {
-      // この行自体に数値があるか？
-      const inlineMatch = line.match(/([0-9]+\.?[0-9]*)\s*[LHlh]?\s*$/);
-      if (inlineMatch && !line.match(/^[0-9]/)) {
-        // 行末に数値がある（項目名と同じ行）
-        const val = parseFloat(inlineMatch[1]);
-        if (!isNaN(val) && val >= 0 && val < 100000 && !results[foundItem]) {
-          results[foundItem] = inlineMatch[1];
-          console.log(`Found (inline): ${foundItem} = ${inlineMatch[1]}`);
-        }
-      } else {
+    if (itemMatch) {
+      const itemName = itemMatch[1];
+      const standardName = itemMap[itemName];
+      if (!results[standardName]) {
         // 次の行に数値があるかも
-        pendingItem = foundItem;
+        pendingItem = standardName;
       }
     } else if (pendingItem) {
       // 前の行が項目名で、この行が数値かチェック
@@ -2511,24 +2530,14 @@ function parseLabText(text) {
     }
   }
   
-  // 方法3: 数値の羅列から推測（最後の手段）
-  // 行番号付きで数値だけの行を見つける
-  const numberOnlyLines = [];
-  for (let i = 0; i < lines.length; i++) {
-    if (lines[i].match(/^[0-9]+\.?[0-9]*$/)) {
-      numberOnlyLines.push({ index: i, value: lines[i] });
-    }
-  }
-  
-  console.log('Number only lines:', numberOnlyLines);
-  console.log('Results:', results);
-  
   return results;
 }
 
 function escapeRegex(str) {
+  // 括弧をエスケープ
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
+
 
 function renderOcrResults() {
   const area = $('#ocrResultArea');
@@ -2581,16 +2590,24 @@ function renderOcrResults() {
   // カテゴリごとに分類
   const grouped = {};
   Object.entries(ocrResults).forEach(([key, valueObj]) => {
-    const mapping = itemToCat[key];
+    // 別名チェック
+    let normalizedKey = key;
+    if (key === 'GGT') normalizedKey = 'γ-GTP';
+    if (key === 'TB') normalizedKey = 'T-bil';
+    if (key === 'DB') normalizedKey = 'D-bil';
+    if (key === 'HCO3') normalizedKey = 'HCO3-';
+
+    const mapping = itemToCat[normalizedKey] || itemToCat[key];
     const cat = mapping ? mapping.cat : 'unknown';
     if (!grouped[cat]) grouped[cat] = [];
     
-    // valueObjは { value: 数値, unit: "単位" } の形式
+    // valueObjは { value: 数値, unit: "単位" } の形式、または数値文字列
     const actualValue = typeof valueObj === 'object' ? valueObj.value : valueObj;
     const actualUnit = typeof valueObj === 'object' && valueObj.unit ? valueObj.unit : (mapping ? mapping.unit : '');
     
     grouped[cat].push({ 
-      key, 
+      key: normalizedKey, // 表示は正規化された項目名を使う
+      originalKey: key, // 削除時に必要
       value: actualValue, 
       unit: actualUnit 
     });
@@ -2609,31 +2626,32 @@ function renderOcrResults() {
     list.appendChild(catHeader);
     
     // 項目
-    grouped[cat].forEach(({ key, value, unit }) => {
+    grouped[cat].forEach(({ key, originalKey, value, unit }) => {
       const pill = document.createElement('div');
       pill.className = 'lab-pill';
       pill.style.background = '#fff';
       pill.innerHTML = `
         <label style="min-width:60px;">${key}</label>
-        <input type="text" inputmode="decimal" value="${value}" style="width:80px;" data-ocr-key="${key}">
+        <input type="text" inputmode="decimal" value="${value}" style="width:80px;" data-ocr-key="${originalKey}">
         <span class="unit">${unit}</span>
-        <button class="del" data-ocr-del="${key}">×</button>
+        <button class="del" data-ocr-del="${originalKey}">×</button>
       `;
       
       // 値の編集
       pill.querySelector('input').addEventListener('input', (e) => {
         const newValue = e.target.value;
-        // オブジェクト構造を維持
-        if (typeof ocrResults[key] === 'object') {
-          ocrResults[key].value = newValue;
+        // ocrResultsは元のキーで保持
+        if (typeof ocrResults[originalKey] === 'object') {
+          ocrResults[originalKey].value = newValue;
         } else {
-          ocrResults[key] = { value: newValue, unit: unit };
+          // 元が数値文字列でも、編集されたらオブジェクト形式で持つ
+          ocrResults[originalKey] = { value: newValue, unit: unit };
         }
       });
       
       // 削除
       pill.querySelector('.del').addEventListener('click', () => {
-        delete ocrResults[key];
+        delete ocrResults[originalKey];
         renderOcrResults();
       });
       
@@ -2647,18 +2665,13 @@ function applyLabData(labData) {
   console.log('Input data:', labData);
   
   // 項目名からカテゴリを判定するマッピング
-  // 優先順位: 一般的な検査 → 特殊な検査
   const categoryPriority = ['cbc', 'chem', 'coag', 'sugar', 'gas', 'urine', 'sediment', 'tumor', 'endo', 'urineBio', 'csf'];
   
   const itemToCat = {};
   categoryPriority.forEach(cat => {
     if (!LABS[cat]) return;
     LABS[cat].items.forEach(([item, unit]) => {
-      // 既にマッピングが存在する場合は優先順位の高い方を維持（上書きしない）
-      if (!itemToCat[item]) {
-        itemToCat[item] = { cat, unit };
-      }
-      // 別名対応
+      if (!itemToCat[item]) { itemToCat[item] = { cat, unit }; }
       if (item === 'γ-GTP' && !itemToCat['GGT']) itemToCat['GGT'] = { cat, unit };
       if (item === 'T-bil' && !itemToCat['TB']) itemToCat['TB'] = { cat, unit };
       if (item === 'D-bil' && !itemToCat['DB']) itemToCat['DB'] = { cat, unit };
@@ -2666,57 +2679,47 @@ function applyLabData(labData) {
     });
   });
   
-  console.log('Sample mappings:');
-  console.log('  WBC →', itemToCat['WBC']);
-  console.log('  RBC →', itemToCat['RBC']);
-  console.log('  Na →', itemToCat['Na']);
-  console.log('  Cl →', itemToCat['Cl']);
-  console.log('  Hb →', itemToCat['Hb']);
-  console.log('  髄液Cl →', itemToCat['髄液Cl']);
-  
   let addedCount = 0;
   const results = [];
   
   Object.entries(labData).forEach(([key, valueData]) => {
-    // 項目名の正規化
+    // keyはOCRから返されたそのままのキー（正規化されていない可能性がある）
     let normalizedKey = key.trim();
     
     // valueDataがオブジェクトの場合は value プロパティを取り出す
     let actualValue = valueData;
+    let actualUnit = '';
     if (typeof valueData === 'object' && valueData !== null && 'value' in valueData) {
       actualValue = valueData.value;
+      actualUnit = valueData.unit || '';
     }
     
-    const mapping = itemToCat[normalizedKey];
+    // キーの正規化とマッピングの検索
+    let targetKey = normalizedKey;
+    if (normalizedKey === 'GGT') targetKey = 'γ-GTP';
+    if (normalizedKey === 'TB') targetKey = 'T-bil';
+    if (normalizedKey === 'DB') targetKey = 'D-bil';
+    if (normalizedKey === 'HCO3') targetKey = 'HCO3-';
+    
+    const mapping = itemToCat[targetKey];
     
     if (mapping) {
       const { cat, unit } = mapping;
       
-      console.log(`✓ ${normalizedKey} = ${actualValue} → カテゴリ: ${LABS[cat].name} (${cat})`);
+      console.log(`✓ ${targetKey} = ${actualValue} → カテゴリ: ${LABS[cat].name} (${cat})`);
       
-      // 既存の項目を探す
-      let existing = state.labs[cat].find(x => x.item === normalizedKey || 
-        (normalizedKey === 'GGT' && x.item === 'γ-GTP') ||
-        (normalizedKey === 'TB' && x.item === 'T-bil') ||
-        (normalizedKey === 'DB' && x.item === 'D-bil') ||
-        (normalizedKey === 'HCO3' && x.item === 'HCO3-'));
-      
-      // 正規化された項目名を取得
-      let itemName = normalizedKey;
-      if (normalizedKey === 'GGT') itemName = 'γ-GTP';
-      if (normalizedKey === 'TB') itemName = 'T-bil';
-      if (normalizedKey === 'DB') itemName = 'D-bil';
-      if (normalizedKey === 'HCO3') itemName = 'HCO3-';
+      // 既存の項目を探す（正規化された項目名で探す）
+      let existing = state.labs[cat].find(x => x.item === targetKey);
       
       if (existing) {
         console.log(`  → 既存項目を更新`);
         existing.val = String(actualValue);
       } else {
         console.log(`  → 新規項目を追加`);
-        state.labs[cat].push({ item: itemName, unit, val: String(actualValue) });
+        state.labs[cat].push({ item: targetKey, unit, val: String(actualValue) });
       }
       
-      results.push({ key: normalizedKey, category: LABS[cat].name, value: actualValue });
+      results.push({ key: targetKey, category: LABS[cat].name, value: actualValue });
       addedCount++;
     } else {
       console.log(`✗ ${normalizedKey} = ${actualValue} → マッピングが見つかりません`);
@@ -3118,8 +3121,14 @@ function calcTimeDiff(time1, time2) {
   if (!time1 || !time2) return null;
   const [h1, m1] = time1.split(':').map(Number);
   const [h2, m2] = time2.split(':').map(Number);
-  const t1 = h1 * 60 + m1;
-  const t2 = h2 * 60 + m2;
+  let t1 = h1 * 60 + m1;
+  let t2 = h2 * 60 + m2;
+
+  // 日をまたいだ場合を考慮（最大24時間以内と仮定）
+  if (t2 < t1) {
+    t2 += 24 * 60;
+  }
+  
   const diff = t2 - t1;
   return diff >= 0 ? diff : null;
 }
@@ -3302,7 +3311,11 @@ function updateCpaEventField(idx, field, value) {
   if (state.cpaEvents[idx]) {
     state.cpaEvents[idx][field] = value;
     if (field === 'arrestTime' || field === 'cprStart' || field === 'roscTime') {
-      calcFlowTimes(idx);
+      // Flow Timeを再計算・表示
+      const eventCard = document.querySelector(`#cpaEventsContainer > div:nth-child(${idx + 1})`);
+      if (eventCard) {
+        calcFlowTimes(idx);
+      }
     }
     save();
   }
@@ -3326,6 +3339,7 @@ function toggleCpaField(idx, field) {
 function addAdrenalineTime(idx) {
   const now = new Date();
   const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  if (!state.cpaEvents[idx].adrenalineTimes) state.cpaEvents[idx].adrenalineTimes = [];
   state.cpaEvents[idx].adrenalineTimes.push(time);
   renderCpaEvents();
   save();
@@ -3338,8 +3352,10 @@ function deleteAdrenalineTime(eventIdx, adrIdx) {
 }
 
 function updateAdrenalineTime(eventIdx, adrIdx, value) {
-  state.cpaEvents[eventIdx].adrenalineTimes[adrIdx] = value;
-  save();
+  if (state.cpaEvents[eventIdx] && state.cpaEvents[eventIdx].adrenalineTimes) {
+    state.cpaEvents[eventIdx].adrenalineTimes[adrIdx] = value;
+    save();
+  }
 }
 
 function addAmiodaroneTime(idx) {
@@ -3360,8 +3376,10 @@ function deleteAmiodaroneTime(eventIdx, adrIdx) {
 }
 
 function updateAmiodaroneTime(eventIdx, adrIdx, value) {
-  state.cpaEvents[eventIdx].amiodaroneTimes[adrIdx] = value;
-  save();
+  if (state.cpaEvents[eventIdx] && state.cpaEvents[eventIdx].amiodaroneTimes) {
+    state.cpaEvents[eventIdx].amiodaroneTimes[adrIdx] = value;
+    save();
+  }
 }
 
 function addAtropineTime(idx) {
@@ -3382,13 +3400,20 @@ function deleteAtropineTime(eventIdx, adrIdx) {
 }
 
 function updateAtropineTime(eventIdx, adrIdx, value) {
-  state.cpaEvents[eventIdx].atropineTimes[adrIdx] = value;
-  save();
+  if (state.cpaEvents[eventIdx] && state.cpaEvents[eventIdx].atropineTimes) {
+    state.cpaEvents[eventIdx].atropineTimes[adrIdx] = value;
+    save();
+  }
 }
 
 function openCpaRhythmDialog(idx) {
   const rhythms = ['Vf', 'Pulseless VT', 'PEA', 'Asystole'];
   const current = state.cpaEvents[idx].rhythm;
+  
+  // 既存のモーダルがあれば閉じる
+  if (window.currentCpaRhythmModal) {
+    closeCpaRhythmDialog();
+  }
   
   // モーダルダイアログを作成
   const modal = document.createElement('div');
@@ -3412,7 +3437,7 @@ function openCpaRhythmDialog(idx) {
   `;
   
   dialog.innerHTML = `
-    <h3 style="margin:0 0 16px 0;font-size:16px;font-weight:600;">初期波形を選択</h3>
+    <h3 style="margin:0 0 16px 0;font-size:16px;font-weight:600;">波形を選択</h3>
     <div style="display:grid;gap:10px;">
       ${rhythms.map(rhythm => `
         <button class="rhythm-select-btn" data-rhythm="${rhythm}" 
@@ -3422,7 +3447,7 @@ function openCpaRhythmDialog(idx) {
       `).join('')}
     </div>
     <button id="cancelRhythmBtn" 
-            style="margin-top:16px;width:100%;padding:12px;border:none;background:var(--chip);
+            style="margin-top:16px;width:100%;padding:12px;border:none;background:#f3f4f6;
                    border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;
                    transition:all 0.15s;-webkit-tap-highlight-color:transparent;">
       キャンセル
@@ -3478,30 +3503,32 @@ function calcFlowTimes(idx) {
   const noFlowEl = document.getElementById(`no_flow_time_${idx}`);
   const lowFlowEl = document.getElementById(`low_flow_time_${idx}`);
   
-  if (!noFlowEl || !lowFlowEl) return;
+  if (!noFlowEl && !lowFlowEl) return;
   
-  // No Flow Time: 心停止〜CPR開始
-  if (event.arrestTime && event.cprStart) {
-    const arrest = parseTime(event.arrestTime);
-    const cpr = parseTime(event.cprStart);
-    if (arrest && cpr) {
-      const diff = (cpr - arrest) / 60000; // minutes
-      noFlowEl.textContent = diff >= 0 ? `${Math.round(diff)} 分` : '-- 分';
+  // No Flow Time: 心停止〜CPR開始 (初回心停止のみ)
+  if (noFlowEl && idx === 0) {
+    if (event.arrestTime && event.cprStart) {
+      const diff = calcTimeDiff(event.arrestTime, event.cprStart);
+      noFlowEl.textContent = diff !== null ? `${diff} 分` : '-- 分';
+    } else {
+      noFlowEl.textContent = '-- 分';
     }
-  } else {
-    noFlowEl.textContent = '-- 分';
   }
   
-  // Low Flow Time: CPR開始〜ROSC
-  if (event.cprStart && event.roscTime) {
-    const cpr = parseTime(event.cprStart);
-    const rosc = parseTime(event.roscTime);
-    if (cpr && rosc) {
-      const diff = (rosc - cpr) / 60000; // minutes
-      lowFlowEl.textContent = diff >= 0 ? `${Math.round(diff)} 分` : '-- 分';
+  // Low Flow Time: CPR開始〜ROSC または 再心停止〜ROSC
+  if (lowFlowEl) {
+    let startTime = event.cprStart;
+    if (!startTime && idx > 0) {
+      // 再心停止の場合はその心停止時刻をLow Flowの開始とする
+      startTime = event.arrestTime;
     }
-  } else {
-    lowFlowEl.textContent = '-- 分';
+    
+    if (startTime && event.roscTime) {
+      const diff = calcTimeDiff(startTime, event.roscTime);
+      lowFlowEl.textContent = diff !== null ? `${diff} 分` : '-- 分';
+    } else {
+      lowFlowEl.textContent = '-- 分';
+    }
   }
 }
 
@@ -3509,7 +3536,8 @@ function parseTime(timeStr) {
   if (!timeStr) return null;
   const [h, m] = timeStr.split(':').map(Number);
   const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m);
+  // 年月日は「今日」を使い、時刻情報をミリ秒で返す
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m).getTime();
 }
 
 function renderCpaEvents() {
@@ -3553,10 +3581,10 @@ function renderCpaEvents() {
         </div>
         
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
-          <div onclick="toggleCpaField(${idx}, 'witnessed')" style="border:1.5px solid ${event.witnessed ? '#4ade80' : 'var(--line)'};background:${event.witnessed ? '#dcfce7' : 'var(--chip)'};border-radius:8px;padding:10px;text-align:center;cursor:pointer;font-size:13px;font-weight:500;color:${event.witnessed ? '#15803d' : 'var(--ink)'};">
+          <div onclick="toggleCpaField(${idx}, 'witnessed')" style="border:1.5px solid ${event.witnessed ? '#4ade80' : 'var(--line)'};background:${event.witnessed ? '#dcfce7' : '#f9fafb'};border-radius:8px;padding:10px;text-align:center;cursor:pointer;font-size:13px;font-weight:500;color:${event.witnessed ? '#15803d' : 'var(--ink)'};">
             ${event.witnessed ? '目撃あり' : '目撃なし'}
           </div>
-          <div onclick="toggleCpaField(${idx}, 'bystander')" style="border:1.5px solid ${event.bystander ? '#4ade80' : 'var(--line)'};background:${event.bystander ? '#dcfce7' : 'var(--chip)'};border-radius:8px;padding:10px;text-align:center;cursor:pointer;font-size:13px;font-weight:500;color:${event.bystander ? '#15803d' : 'var(--ink)'};">
+          <div onclick="toggleCpaField(${idx}, 'bystander')" style="border:1.5px solid ${event.bystander ? '#4ade80' : 'var(--line)'};background:${event.bystander ? '#dcfce7' : '#f9fafb'};border-radius:8px;padding:10px;text-align:center;cursor:pointer;font-size:13px;font-weight:500;color:${event.bystander ? '#15803d' : 'var(--ink)'};">
             ${event.bystander ? 'バイスタンダーCPRあり' : 'バイスタンダーCPRなし'}
           </div>
         </div>
@@ -3581,11 +3609,11 @@ function renderCpaEvents() {
         
         <h4 style="margin:12px 0 8px 0;font-size:13px;color:var(--muted);">気道確保</h4>
         <div style="display:flex;gap:8px;margin-bottom:12px;">
-          <label style="display:flex;align-items:center;gap:6px;padding:8px 12px;border:1px solid var(--line);border-radius:6px;cursor:pointer;background:${event.lt ? '#dcfce7' : 'var(--chip)'};flex:1;">
+          <label style="display:flex;align-items:center;gap:6px;padding:8px 12px;border:1px solid var(--line);border-radius:6px;cursor:pointer;background:${event.lt ? '#dcfce7' : '#f9fafb'};flex:1;">
             <input type="checkbox" ${event.lt ? 'checked' : ''} onchange="updateCpaEventField(${idx}, 'lt', this.checked)" style="width:16px;height:16px;">
             <span style="font-size:13px;">LT挿入</span>
           </label>
-          <label style="display:flex;align-items:center;gap:6px;padding:8px 12px;border:1px solid var(--line);border-radius:6px;cursor:pointer;background:${event.intubation ? '#dcfce7' : 'var(--chip)'};flex:1;">
+          <label style="display:flex;align-items:center;gap:6px;padding:8px 12px;border:1px solid var(--line);border-radius:6px;cursor:pointer;background:${event.intubation ? '#dcfce7' : '#f9fafb'};flex:1;">
             <input type="checkbox" ${event.intubation ? 'checked' : ''} onchange="updateCpaEventField(${idx}, 'intubation', this.checked); renderCpaEvents();" style="width:16px;height:16px;">
             <span style="font-size:13px;">気管挿管</span>
           </label>
@@ -3616,15 +3644,15 @@ function renderCpaEvents() {
         
         <h4 style="margin:12px 0 8px 0;font-size:13px;color:var(--muted);">アドレナリン投与</h4>
         <div id="adrenaline_times_${idx}" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;"></div>
-        <button onclick="addAdrenalineTime(${idx})" style="background:var(--chip);border:1px solid var(--line);border-radius:6px;padding:8px 12px;font-size:12px;width:100%;">＋ アドレナリン追加</button>
+        <button onclick="addAdrenalineTime(${idx})" style="background:#f3f4f6;border:1px solid var(--line);border-radius:6px;padding:8px 12px;font-size:12px;width:100%;">＋ アドレナリン追加</button>
         
         <h4 style="margin:12px 0 8px 0;font-size:13px;color:var(--muted);">アミオダロン投与</h4>
         <div id="amiodarone_times_${idx}" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;"></div>
-        <button onclick="addAmiodaroneTime(${idx})" style="background:var(--chip);border:1px solid var(--line);border-radius:6px;padding:8px 12px;font-size:12px;width:100%;">＋ アミオダロン追加</button>
+        <button onclick="addAmiodaroneTime(${idx})" style="background:#f3f4f6;border:1px solid var(--line);border-radius:6px;padding:8px 12px;font-size:12px;width:100%;">＋ アミオダロン追加</button>
         
         <h4 style="margin:12px 0 8px 0;font-size:13px;color:var(--muted);">アトロピン投与</h4>
         <div id="atropine_times_${idx}" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;"></div>
-        <button onclick="addAtropineTime(${idx})" style="background:var(--chip);border:1px solid var(--line);border-radius:6px;padding:8px 12px;font-size:12px;width:100%;">＋ アトロピン追加</button>
+        <button onclick="addAtropineTime(${idx})" style="background:#f3f4f6;border:1px solid var(--line);border-radius:6px;padding:8px 12px;font-size:12px;width:100%;">＋ アトロピン追加</button>
         
         <h4 style="margin:12px 0 8px 0;font-size:13px;color:var(--muted);">PCPS</h4>
         <div style="margin-bottom:12px;">
@@ -3727,14 +3755,19 @@ function setCpaVitalDefaults() {
     return;
   }
   
+  // バイタルが空の場合は1つ追加
+  if (state.vitals.length === 0) {
+    state.vitals.push({ time: '', sbp: 120, dbp: 80, hr: 72, rr: 16, spo2: 98, bt: 36.6, gcs: { e: 4, v: 5, m: 6 } });
+  }
+
   state.vitals.forEach(v => {
     v.sbp = 0;
     v.dbp = 0;
     v.hr = 0;
     v.rr = 0;
     v.spo2 = 0;
-    // BTは実測値を保持（0に設定しない）
-    // v.bt = v.bt; // 既存の値を保持
+    // BTは実測値を保持（v.btがundefinedやnullの場合は36.6に設定）
+    v.bt = v.bt === undefined || v.bt === null ? 36.6 : v.bt;
     v.gcs = { e: 1, v: 1, m: 1 };
   });
   
@@ -3768,9 +3801,9 @@ function init() {
 
 // スワイプジェスチャー検出
 function initSwipeGesture() {
-  // メインタブの順序
-  const mainTabs = ['basic', 'vital', 'exam', 'labs', 'imaging', 'phys', 'output'];
-  // 検査タブの順序
+  // メインタブの順序 (data-tab 属性と一致させる)
+  const mainTabs = ['history', 'exam', 'lab', 'image', 'assess', 'output'];
+  // 検査タブの順序 (data-exam 属性と一致させる)
   const examTabs = ['general', 'trauma', 'stroke', 'cpa'];
   
   let touchStartX = 0;
@@ -3779,33 +3812,46 @@ function initSwipeGesture() {
   let touchEndY = 0;
   
   const minSwipeDistance = 50; // 最小スワイプ距離（px）
-  
+  const maxVerticalMovement = 50; // 最大垂直移動量（px）
+
   // メインコンテンツエリアでのスワイプ
-  const mainContent = document.body;
+  const mainContent = $('main');
+  if (!mainContent) return;
   
   mainContent.addEventListener('touchstart', (e) => {
-    // 入力フィールド、ボタン、リンク内でのスワイプは無効
+    // 入力フィールド、ボタン、リンク、セレクト要素内でのスワイプは無効
     if (e.target.tagName === 'INPUT' || 
         e.target.tagName === 'TEXTAREA' || 
         e.target.tagName === 'BUTTON' ||
         e.target.tagName === 'A' ||
+        e.target.tagName === 'SELECT' ||
         e.target.closest('button') ||
-        e.target.closest('.chip')) {
+        e.target.closest('select') ||
+        e.target.closest('.chip') ||
+        e.target.closest('.exam-tab')) {
       return;
     }
     
+    // スクロール可能な要素の場合は無効
+    if (mainContent.scrollHeight > mainContent.clientHeight) {
+       // スクロール可能な要素内でなければOK
+    }
+
     touchStartX = e.changedTouches[0].screenX;
     touchStartY = e.changedTouches[0].screenY;
   }, { passive: true });
   
   mainContent.addEventListener('touchend', (e) => {
-    // 入力フィールド、ボタン、リンク内でのスワイプは無効
+    // touchstartでチェックしたのと同じ要素を無視
     if (e.target.tagName === 'INPUT' || 
         e.target.tagName === 'TEXTAREA' || 
         e.target.tagName === 'BUTTON' ||
         e.target.tagName === 'A' ||
+        e.target.tagName === 'SELECT' ||
         e.target.closest('button') ||
-        e.target.closest('.chip')) {
+        e.target.closest('select') ||
+        e.target.closest('.chip') ||
+        e.target.closest('.exam-tab')) {
       return;
     }
     
@@ -3819,44 +3865,62 @@ function initSwipeGesture() {
     const deltaX = touchEndX - touchStartX;
     const deltaY = touchEndY - touchStartY;
     
-    // 水平方向のスワイプが垂直方向より大きい場合のみ処理
-    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > minSwipeDistance) {
-      // 現在のアクティブなメインタブを取得
-      const activeMainTab = $('.tab-bar-item.active');
-      if (activeMainTab) {
-        const currentTab = activeMainTab.dataset.tab;
-        const currentIndex = mainTabs.indexOf(currentTab);
-        
-        if (deltaX > 0) {
-          // 右スワイプ → 前のタブ
-          if (currentIndex > 0) {
-            switchTab(mainTabs[currentIndex - 1]);
-          }
-        } else {
-          // 左スワイプ → 次のタブ
-          if (currentIndex < mainTabs.length - 1) {
-            switchTab(mainTabs[currentIndex + 1]);
-          }
+    // 垂直方向の動きが大きすぎる場合は、スクロールと見なして無視
+    if (Math.abs(deltaY) > maxVerticalMovement) {
+      return;
+    }
+
+    // 水平方向のスワイプが最小距離を満たしている場合のみ処理
+    if (Math.abs(deltaX) > minSwipeDistance) {
+      const activeMainTabEl = $('.tab-bar-item.active');
+      if (!activeMainTabEl) return;
+
+      const currentTab = activeMainTabEl.dataset.tab;
+      const currentIndex = mainTabs.indexOf(currentTab);
+      
+      let newTabIndex = -1;
+      
+      if (deltaX > 0) {
+        // 右スワイプ → 前のタブ
+        if (currentIndex > 0) {
+          newTabIndex = currentIndex - 1;
+        }
+      } else {
+        // 左スワイプ → 次のタブ
+        if (currentIndex < mainTabs.length - 1) {
+          newTabIndex = currentIndex + 1;
         }
       }
       
-      // 検査タブ内でのスワイプ（examタブがアクティブな場合）
-      if (activeMainTab && activeMainTab.dataset.tab === 'exam') {
-        const activeExamTab = $('.exam-tab.active');
-        if (activeExamTab) {
-          const currentExamTab = activeExamTab.dataset.exam;
+      if (newTabIndex !== -1) {
+        // メインタブの切り替え
+        switchTab(mainTabs[newTabIndex]);
+        return; 
+      }
+
+      // メインタブの切り替えが行われなかった場合、検査タブ内でのスワイプを確認
+      if (currentTab === 'exam') {
+        const activeExamTabEl = $('.exam-tab.active');
+        if (activeExamTabEl) {
+          const currentExamTab = activeExamTabEl.dataset.exam;
           const currentExamIndex = examTabs.indexOf(currentExamTab);
           
+          let newExamIndex = -1;
+
           if (deltaX > 0) {
             // 右スワイプ → 前の検査タブ
             if (currentExamIndex > 0) {
-              switchExamTab(examTabs[currentExamIndex - 1]);
+              newExamIndex = currentExamIndex - 1;
             }
           } else {
             // 左スワイプ → 次の検査タブ
             if (currentExamIndex < examTabs.length - 1) {
-              switchExamTab(examTabs[currentExamIndex + 1]);
+              newExamIndex = currentExamIndex + 1;
             }
+          }
+          
+          if (newExamIndex !== -1) {
+            switchExamTab(examTabs[newExamIndex]);
           }
         }
       }
