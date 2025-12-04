@@ -3761,6 +3761,107 @@ function init() {
   
   $$('.chip').forEach(el => { const st = state.chips[el.textContent]; if (st) el.dataset.state = st; });
   switchExamTab(state.examTab || 'general');
+  
+  // スワイプジェスチャーを初期化
+  initSwipeGesture();
+}
+
+// スワイプジェスチャー検出
+function initSwipeGesture() {
+  // メインタブの順序
+  const mainTabs = ['basic', 'vital', 'exam', 'labs', 'imaging', 'phys', 'output'];
+  // 検査タブの順序
+  const examTabs = ['general', 'trauma', 'stroke', 'cpa'];
+  
+  let touchStartX = 0;
+  let touchStartY = 0;
+  let touchEndX = 0;
+  let touchEndY = 0;
+  
+  const minSwipeDistance = 50; // 最小スワイプ距離（px）
+  
+  // メインコンテンツエリアでのスワイプ
+  const mainContent = document.body;
+  
+  mainContent.addEventListener('touchstart', (e) => {
+    // 入力フィールド、ボタン、リンク内でのスワイプは無効
+    if (e.target.tagName === 'INPUT' || 
+        e.target.tagName === 'TEXTAREA' || 
+        e.target.tagName === 'BUTTON' ||
+        e.target.tagName === 'A' ||
+        e.target.closest('button') ||
+        e.target.closest('.chip')) {
+      return;
+    }
+    
+    touchStartX = e.changedTouches[0].screenX;
+    touchStartY = e.changedTouches[0].screenY;
+  }, { passive: true });
+  
+  mainContent.addEventListener('touchend', (e) => {
+    // 入力フィールド、ボタン、リンク内でのスワイプは無効
+    if (e.target.tagName === 'INPUT' || 
+        e.target.tagName === 'TEXTAREA' || 
+        e.target.tagName === 'BUTTON' ||
+        e.target.tagName === 'A' ||
+        e.target.closest('button') ||
+        e.target.closest('.chip')) {
+      return;
+    }
+    
+    touchEndX = e.changedTouches[0].screenX;
+    touchEndY = e.changedTouches[0].screenY;
+    
+    handleSwipe();
+  }, { passive: true });
+  
+  function handleSwipe() {
+    const deltaX = touchEndX - touchStartX;
+    const deltaY = touchEndY - touchStartY;
+    
+    // 水平方向のスワイプが垂直方向より大きい場合のみ処理
+    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > minSwipeDistance) {
+      // 現在のアクティブなメインタブを取得
+      const activeMainTab = $('.tab-bar-item.active');
+      if (activeMainTab) {
+        const currentTab = activeMainTab.dataset.tab;
+        const currentIndex = mainTabs.indexOf(currentTab);
+        
+        if (deltaX > 0) {
+          // 右スワイプ → 前のタブ
+          if (currentIndex > 0) {
+            switchTab(mainTabs[currentIndex - 1]);
+          }
+        } else {
+          // 左スワイプ → 次のタブ
+          if (currentIndex < mainTabs.length - 1) {
+            switchTab(mainTabs[currentIndex + 1]);
+          }
+        }
+      }
+      
+      // 検査タブ内でのスワイプ（examタブがアクティブな場合）
+      if (activeMainTab && activeMainTab.dataset.tab === 'exam') {
+        const activeExamTab = $('.exam-tab.active');
+        if (activeExamTab) {
+          const currentExamTab = activeExamTab.dataset.exam;
+          const currentExamIndex = examTabs.indexOf(currentExamTab);
+          
+          if (deltaX > 0) {
+            // 右スワイプ → 前の検査タブ
+            if (currentExamIndex > 0) {
+              switchExamTab(examTabs[currentExamIndex - 1]);
+            }
+          } else {
+            // 左スワイプ → 次の検査タブ
+            if (currentExamIndex < examTabs.length - 1) {
+              switchExamTab(examTabs[currentExamIndex + 1]);
+            }
+          }
+        }
+      }
+    }
+  }
 }
 
 init();
