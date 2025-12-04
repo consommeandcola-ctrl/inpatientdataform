@@ -3389,16 +3389,85 @@ function updateAtropineTime(eventIdx, adrIdx, value) {
 function openCpaRhythmDialog(idx) {
   const rhythms = ['Vf', 'Pulseless VT', 'PEA', 'Asystole'];
   const current = state.cpaEvents[idx].rhythm;
-  const selected = prompt(`初期波形を選択してください:\n1: Vf\n2: Pulseless VT\n3: PEA\n4: Asystole\n\n現在: ${current}`, 
-    rhythms.indexOf(current) + 1);
   
-  if (selected) {
-    const num = parseInt(selected);
-    if (num >= 1 && num <= 4) {
-      state.cpaEvents[idx].rhythm = rhythms[num - 1];
+  // モーダルダイアログを作成
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:1000;padding:20px;';
+  
+  const dialog = document.createElement('div');
+  dialog.style.cssText = 'background:#fff;border-radius:12px;padding:20px;max-width:400px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,0.3);';
+  
+  const buttonStyle = (rhythm) => `
+    padding:14px;
+    border:2px solid ${rhythm === current ? 'var(--brand)' : 'var(--line)'};
+    background:${rhythm === current ? '#e0f2fe' : '#fff'};
+    border-radius:8px;
+    font-size:15px;
+    font-weight:500;
+    cursor:pointer;
+    text-align:left;
+    color:${rhythm === current ? 'var(--brand)' : 'var(--ink)'};
+    transition:all 0.15s;
+    -webkit-tap-highlight-color:transparent;
+  `;
+  
+  dialog.innerHTML = `
+    <h3 style="margin:0 0 16px 0;font-size:16px;font-weight:600;">初期波形を選択</h3>
+    <div style="display:grid;gap:10px;">
+      ${rhythms.map(rhythm => `
+        <button class="rhythm-select-btn" data-rhythm="${rhythm}" 
+                style="${buttonStyle(rhythm)}">
+          ${rhythm === current ? '✓ ' : ''}${rhythm}
+        </button>
+      `).join('')}
+    </div>
+    <button id="cancelRhythmBtn" 
+            style="margin-top:16px;width:100%;padding:12px;border:none;background:var(--chip);
+                   border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;
+                   transition:all 0.15s;-webkit-tap-highlight-color:transparent;">
+      キャンセル
+    </button>
+  `;
+  
+  modal.appendChild(dialog);
+  document.body.appendChild(modal);
+  
+  // 波形選択ボタンのイベント
+  dialog.querySelectorAll('.rhythm-select-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const rhythm = btn.dataset.rhythm;
+      state.cpaEvents[idx].rhythm = rhythm;
       renderCpaEvents();
       save();
+      closeCpaRhythmDialog();
+    });
+    // タップエフェクト
+    btn.addEventListener('touchstart', () => {
+      btn.style.transform = 'scale(0.97)';
+    });
+    btn.addEventListener('touchend', () => {
+      btn.style.transform = 'scale(1)';
+    });
+  });
+  
+  // キャンセルボタン
+  dialog.querySelector('#cancelRhythmBtn').addEventListener('click', closeCpaRhythmDialog);
+  
+  // モーダル外クリックで閉じる
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      closeCpaRhythmDialog();
     }
+  });
+  
+  // 現在のモーダルを保存
+  window.currentCpaRhythmModal = modal;
+}
+
+function closeCpaRhythmDialog() {
+  if (window.currentCpaRhythmModal) {
+    window.currentCpaRhythmModal.remove();
+    window.currentCpaRhythmModal = null;
   }
 }
 
