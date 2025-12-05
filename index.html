@@ -496,7 +496,10 @@ select {
     <h1>外来ワンページ</h1>
     <div class="version">iPhone版 v2.1.0</div>
   </div>
-  <button class="btn btn-sm" id="btnReset" style="background:rgba(255,255,255,0.2);color:#fff;border:1px solid rgba(255,255,255,0.5)">🗑 初期化</button>
+  <div style="display:flex;gap:8px">
+    <button class="btn btn-sm" id="btnRecords" style="background:rgba(255,255,255,0.2);color:#fff;border:1px solid rgba(255,255,255,0.5)">📂 記録</button>
+    <button class="btn btn-sm" id="btnReset" style="background:rgba(255,255,255,0.2);color:#fff;border:1px solid rgba(255,255,255,0.5)">🗑 初期化</button>
+  </div>
 </header>
 
 <main>
@@ -765,6 +768,20 @@ select {
         </div>
       </div>
       
+      <div id="savedLabImageArea" style="display:none;margin-bottom:12px">
+        <div style="background:#ecfdf5;border:1px solid #6ee7b7;border-radius:8px;padding:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <h3 style="margin:0;font-size:14px;color:#047857">📸 保存された検査写真</h3>
+            <div style="display:flex;gap:4px">
+              <button class="btn btn-sm" id="rereadLabImageBtn" style="padding:2px 8px;font-size:11px;background:#10b981;color:#fff">再読取</button>
+              <button class="btn btn-sm" id="deleteLabImageBtn" style="padding:2px 8px;font-size:11px">削除</button>
+            </div>
+          </div>
+          <img id="savedLabImagePreview" style="width:100%;border-radius:6px;cursor:pointer" onclick="this.requestFullscreen()">
+          <p style="font-size:11px;color:#047857;margin-top:6px;margin-bottom:0">タップで拡大表示</p>
+        </div>
+      </div>
+      
       <div class="form-grid mb-2">
         <div>
           <label>カテゴリ</label>
@@ -963,6 +980,33 @@ select {
   </div>
 </div>
 
+<div id="recordsModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:200;overflow-y:auto;-webkit-overflow-scrolling:touch">
+  <div style="min-height:100%;display:flex;align-items:center;justify-content:center;padding:20px;padding-top:calc(20px + env(safe-area-inset-top));padding-bottom:calc(20px + env(safe-area-inset-bottom));padding-left:calc(20px + env(safe-area-inset-left));padding-right:calc(20px + env(safe-area-inset-right))">
+    <div style="background:#fff;border-radius:16px;padding:24px;max-width:500px;width:100%;box-shadow:0 20px 25px -5px rgba(0,0,0,0.1);max-height:80vh;overflow-y:auto">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <h2 style="margin:0;font-size:18px;font-weight:600">📂 記録管理</h2>
+        <button id="recordsModalClose" style="border:none;background:transparent;font-size:24px;cursor:pointer;color:#6b7280;padding:0;width:32px;height:32px;line-height:1">×</button>
+      </div>
+      
+      <div style="margin-bottom:16px">
+        <button class="btn btn-primary btn-block" id="newRecordBtn">📝 新規記録を開始</button>
+      </div>
+      
+      <div style="margin-bottom:12px">
+        <h3 style="font-size:14px;font-weight:600;color:#374151;margin-bottom:8px">保存された記録</h3>
+        <div id="recordsList" style="max-height:400px;overflow-y:auto"></div>
+      </div>
+      
+      <div style="margin-top:16px;padding-top:16px;border-top:1px solid #e5e7eb">
+        <p style="font-size:12px;color:#6b7280;margin:0">
+          💡 記録は自動保存されます。<br>
+          複数の患者記録を切り替えて使用できます。
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => document.querySelectorAll(s);
@@ -989,6 +1033,7 @@ const state = {
   },
   labs: { cbc: [], chem: [], coag: [], sugar: [], gas: [], urine: [], sediment: [], tumor: [], endo: [], urineBio: [], csf: [], gasType: 'ABG' },
   labFree: '',
+  lastLabImage: null, // 最後に撮影した検査写真を保存
   infect: { covid: { type: '', res: '' }, flu: { a: '', b: '' }, cultures: [] },
   imaging: { 
     cxr: { on: false, txt: '' }, 
@@ -1077,36 +1122,220 @@ const NIHSS_ITEMS = [
   { key: '11', label: '11 消去/注意障害', hint: '0:なし 1:軽度 2:重度', max: 2 }
 ];
 
-const STORAGE_KEY = 'gairai_iphone_v21';
-function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
-function load() {
-  const d = localStorage.getItem(STORAGE_KEY);
-  if (d) { 
-    try { 
-      Object.assign(state, JSON.parse(d));
-      // 古い形式のvitalsを新しい配列形式にマイグレーション
-      if (state.vitals && !Array.isArray(state.vitals) && state.vitals.sbp !== undefined) {
-        const oldVital = state.vitals;
-        state.vitals = [{
-          time: '',
-          sbp: oldVital.sbp || 120,
-          dbp: oldVital.dbp || 80,
-          hr: oldVital.hr || 72,
-          rr: oldVital.rr || 16,
-          spo2: oldVital.spo2 || 98,
-          bt: oldVital.bt || 36.6,
-          gcs: oldVital.gcs || { e: 4, v: 5, m: 6 }
-        }];
-      }
-      // cpaEventsが存在しない場合は空配列で初期化
-      if (!state.cpaEvents) {
-        state.cpaEvents = [];
-      }
-      // 古いmemos.cpaを削除（後方互換性）
-      if (state.memos && state.memos.cpa) {
-        delete state.memos.cpa;
-      }
-    } catch (e) {} 
+// 記録管理
+const RECORDS_LIST_KEY = 'gairai_records_list';
+let currentRecordId = null;
+
+function getRecordsList() {
+  const data = localStorage.getItem(RECORDS_LIST_KEY);
+  return data ? JSON.parse(data) : [];
+}
+
+function saveRecordsList(list) {
+  localStorage.setItem(RECORDS_LIST_KEY, JSON.stringify(list));
+}
+
+function generateRecordId() {
+  const now = new Date();
+  const date = now.toISOString().split('T')[0];
+  const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  return `${date}_${time.replace(':', '-')}`;
+}
+
+function getRecordKey(id) {
+  return `gairai_record_${id}`;
+}
+
+function save() {
+  if (!currentRecordId) {
+    // 新規記録の場合はIDを生成
+    currentRecordId = generateRecordId();
+    const records = getRecordsList();
+    records.unshift({
+      id: currentRecordId,
+      date: new Date().toISOString().split('T')[0],
+      time: new Date().toTimeString().split(' ')[0].substring(0, 5),
+      title: state.cc || '（主訴未入力）',
+      lastUpdated: new Date().toISOString()
+    });
+    saveRecordsList(records);
+  } else {
+    // 既存記録の更新
+    const records = getRecordsList();
+    const record = records.find(r => r.id === currentRecordId);
+    if (record) {
+      record.title = state.cc || '（主訴未入力）';
+      record.lastUpdated = new Date().toISOString();
+      saveRecordsList(records);
+    }
+  }
+  
+  localStorage.setItem(getRecordKey(currentRecordId), JSON.stringify(state));
+}
+
+function load(recordId) {
+  if (recordId) {
+    currentRecordId = recordId;
+  }
+  
+  if (!currentRecordId) {
+    // 記録IDが指定されていない場合は最新の記録を読み込む
+    const records = getRecordsList();
+    if (records.length > 0) {
+      currentRecordId = records[0].id;
+    }
+  }
+  
+  if (currentRecordId) {
+    const d = localStorage.getItem(getRecordKey(currentRecordId));
+    if (d) { 
+      try { 
+        Object.assign(state, JSON.parse(d));
+        // 古い形式のvitalsを新しい配列形式にマイグレーション
+        if (state.vitals && !Array.isArray(state.vitals) && state.vitals.sbp !== undefined) {
+          const oldVital = state.vitals;
+          state.vitals = [{
+            time: '',
+            sbp: oldVital.sbp || 120,
+            dbp: oldVital.dbp || 80,
+            hr: oldVital.hr || 72,
+            rr: oldVital.rr || 16,
+            spo2: oldVital.spo2 || 98,
+            bt: oldVital.bt || 36.6,
+            gcs: oldVital.gcs || { e: 4, v: 5, m: 6 }
+          }];
+        }
+        // cpaEventsが存在しない場合は空配列で初期化
+        if (!state.cpaEvents) {
+          state.cpaEvents = [];
+        }
+        // 古いmemos.cpaを削除（後方互換性）
+        if (state.memos && state.memos.cpa) {
+          delete state.memos.cpa;
+        }
+      } catch (e) {
+        console.error('Failed to load record:', e);
+      } 
+    }
+  }
+}
+
+function newRecord() {
+  // 現在のstateをリセット
+  Object.keys(state).forEach(key => {
+    if (key === 'vitals') {
+      state[key] = [];
+    } else if (key === 'chips') {
+      state[key] = {};
+    } else if (key === 'memos') {
+      state[key] = {
+        general: { head: '', resp: '', card: '', abd: '', limb: '', neuro: '' },
+        trauma: { head: '', neck: '', chest: '', abd: '', pelvis: '', limb: '' },
+        stroke: { cn: '', eye: '', motor: '', reflex: '', higher: '' }
+      };
+    } else if (key === 'trauma') {
+      state[key] = { ru: '', rl: '', lu: '', ll: '' };
+    } else if (key === 'stroke') {
+      state[key] = {
+        pupilL: '', pupilR: '', plrL: '', plrR: '', gaze: '', nyst: '',
+        mmt: { ru: '', rl: '', lu: '', ll: '' },
+        btr: '', ptr: '', babinski: false, chaddock: false,
+        nih: {}
+      };
+    } else if (key === 'labs') {
+      state[key] = { cbc: [], chem: [], coag: [], sugar: [], gas: [], urine: [], sediment: [], tumor: [], endo: [], urineBio: [], csf: [], gasType: 'ABG' };
+    } else if (key === 'infect') {
+      state[key] = { covid: { type: '', res: '' }, flu: { a: '', b: '' }, cultures: [] };
+    } else if (key === 'imaging') {
+      state[key] = { 
+        cxr: { on: false, txt: '' }, 
+        ct: { on: false, txt: '' }, 
+        ctc: { on: false, txt: '' }, 
+        mri: { on: false, txt: '' },
+        other: { on: false, name: '', txt: '' }
+      };
+    } else if (key === 'phys') {
+      state[key] = { 
+        ecg: { on: false, rhythm: '', rate: '', st: '', qtc: '', txt: '' }, 
+        eeg: { on: false, txt: '' }, 
+        us: { on: false, txt: '' },
+        other: { on: false, name: '', txt: '' }
+      };
+    } else if (key === 'problems') {
+      state[key] = [];
+    } else if (key === 'cpaEvents') {
+      state[key] = [];
+    } else if (key === 'lastLabImage') {
+      state[key] = null;
+    } else {
+      state[key] = '';
+    }
+  });
+  
+  currentRecordId = null;
+  location.reload();
+}
+
+function deleteRecord(recordId) {
+  if (!confirm('この記録を削除しますか？この操作は取り消せません。')) {
+    return;
+  }
+  
+  // 記録リストから削除
+  const records = getRecordsList();
+  const newRecords = records.filter(r => r.id !== recordId);
+  saveRecordsList(newRecords);
+  
+  // データを削除
+  localStorage.removeItem(getRecordKey(recordId));
+  
+  // 削除した記録が現在の記録の場合
+  if (currentRecordId === recordId) {
+    if (newRecords.length > 0) {
+      // 最新の記録を読み込む
+      load(newRecords[0].id);
+      location.reload();
+    } else {
+      // 記録がなくなった場合は新規作成
+      newRecord();
+    }
+  } else {
+    // 他の記録を削除した場合はリストを再描画
+    renderRecordsList();
+  }
+}
+
+// グローバルスコープに公開
+window.deleteRecord = deleteRecord;
+
+const STORAGE_KEY = 'gairai_iphone_v21'; // 後方互換性のため残す
+
+// 旧バージョンからの移行処理
+function migrateFromOldVersion() {
+  const oldData = localStorage.getItem(STORAGE_KEY);
+  if (oldData && getRecordsList().length === 0) {
+    try {
+      const oldState = JSON.parse(oldData);
+      // 旧データを新しい記録として保存
+      const recordId = generateRecordId();
+      localStorage.setItem(getRecordKey(recordId), oldData);
+      
+      const records = [{
+        id: recordId,
+        date: new Date().toISOString().split('T')[0],
+        time: new Date().toTimeString().split(' ')[0].substring(0, 5),
+        title: oldState.cc || '（移行データ）',
+        lastUpdated: new Date().toISOString()
+      }];
+      saveRecordsList(records);
+      currentRecordId = recordId;
+      
+      // 旧データを削除
+      localStorage.removeItem(STORAGE_KEY);
+      console.log('Migrated from old version');
+    } catch (e) {
+      console.error('Migration failed:', e);
+    }
   }
 }
 
@@ -2209,6 +2438,12 @@ function initGeminiAPI() {
         });
         
         console.log('OCR results:', ocrResults);
+        
+        // 写真を保存
+        state.lastLabImage = base64; // フルのBase64データを保存（data:image/jpeg;base64,を含む）
+        save();
+        renderSavedLabImage();
+        
         renderOcrResults();
         pasteStatus.style.display = 'block';
         pasteStatus.textContent = `✅ ${result.items.length}項目を読み取りました`;
@@ -2412,6 +2647,96 @@ function initGeminiAPI() {
       throw new Error('APIからの応答を解析できませんでした');
     }
   }
+  
+  // 保存された検査写真を表示
+  function renderSavedLabImage() {
+    const savedImageArea = $('#savedLabImageArea');
+    const imagePreview = $('#savedLabImagePreview');
+    
+    if (state.lastLabImage) {
+      savedImageArea.style.display = 'block';
+      imagePreview.src = state.lastLabImage;
+    } else {
+      savedImageArea.style.display = 'none';
+    }
+  }
+  
+  // 保存された写真を削除
+  const deleteLabImageBtn = $('#deleteLabImageBtn');
+  if (deleteLabImageBtn) {
+    deleteLabImageBtn.addEventListener('click', () => {
+      if (confirm('保存されている検査写真を削除しますか？')) {
+        state.lastLabImage = null;
+        save();
+        renderSavedLabImage();
+        pasteStatus.style.display = 'block';
+        pasteStatus.textContent = '✅ 写真を削除しました';
+        pasteStatus.style.color = '#22c55e';
+        setTimeout(() => {
+          pasteStatus.style.display = 'none';
+        }, 2000);
+      }
+    });
+  }
+  
+  // 保存された写真を再読み取り
+  const rereadLabImageBtn = $('#rereadLabImageBtn');
+  if (rereadLabImageBtn) {
+    rereadLabImageBtn.addEventListener('click', async () => {
+      if (!state.lastLabImage) {
+        pasteStatus.style.display = 'block';
+        pasteStatus.textContent = '⚠️ 保存されている写真がありません';
+        pasteStatus.style.color = '#f59e0b';
+        return;
+      }
+      
+      const apiKey = getApiKey();
+      if (!apiKey) {
+        pasteStatus.style.display = 'block';
+        pasteStatus.textContent = '⚠️ Gemini APIキーが設定されていません';
+        pasteStatus.style.color = '#f59e0b';
+        return;
+      }
+      
+      pasteStatus.style.display = 'block';
+      pasteStatus.textContent = '📷 画像を再読み取り中...';
+      pasteStatus.style.color = '#2563eb';
+      
+      try {
+        const base64Data = state.lastLabImage.split(',')[1]; // data:image/jpeg;base64, を除去
+        const result = await callGeminiAPI(apiKey, base64Data);
+        
+        if (result && result.items && result.items.length > 0) {
+          ocrResults = {};
+          result.items.forEach(item => {
+            if (item.key && item.value !== undefined) {
+              ocrResults[item.key] = {
+                value: item.value,
+                unit: item.unit || ''
+              };
+            }
+          });
+          
+          renderOcrResults();
+          pasteStatus.style.display = 'block';
+          pasteStatus.textContent = `✅ ${result.items.length}項目を再読み取りしました`;
+          pasteStatus.style.color = '#22c55e';
+        } else {
+          pasteStatus.style.display = 'block';
+          pasteStatus.textContent = '⚠️ 検査値を読み取れませんでした';
+          pasteStatus.style.color = '#f59e0b';
+        }
+      } catch (err) {
+        console.error('Error during re-reading:', err);
+        pasteStatus.style.display = 'block';
+        pasteStatus.textContent = '❌ エラー: ' + (err.message || '不明なエラー');
+        pasteStatus.style.color = '#ef4444';
+      }
+    });
+  }
+  
+  // 初期表示
+  renderSavedLabImage();
 }
 
 // テキストから検査値を抽出（iPhoneライブテキスト対応）
@@ -3315,16 +3640,22 @@ $('#copyOut').addEventListener('click', () => {
 $('#printOut').addEventListener('click', () => window.print());
 
 $('#btnReset').addEventListener('click', () => {
-  if (confirm('すべてのデータを初期化しますか？')) {
-    localStorage.removeItem(STORAGE_KEY);
-    location.reload();
+  if (confirm('現在の記録を初期化しますか？\nこの操作は取り消せません。')) {
+    if (currentRecordId) {
+      deleteRecord(currentRecordId);
+    } else {
+      newRecord();
+    }
   }
 });
 
 $('#btnResetMain').addEventListener('click', () => {
-  if (confirm('すべてのデータを初期化しますか？')) {
-    localStorage.removeItem(STORAGE_KEY);
-    location.reload();
+  if (confirm('現在の記録を初期化しますか？\nこの操作は取り消せません。')) {
+    if (currentRecordId) {
+      deleteRecord(currentRecordId);
+    } else {
+      newRecord();
+    }
   }
 });
 
@@ -3840,8 +4171,112 @@ function setCpaVitalDefaults() {
   save();
 }
 
+// 記録管理の初期化
+function initRecordsManager() {
+  const modal = $('#recordsModal');
+  const openBtn = $('#btnRecords');
+  const closeBtn = $('#recordsModalClose');
+  const newRecordBtn = $('#newRecordBtn');
+  
+  if (!modal || !openBtn || !closeBtn || !newRecordBtn) {
+    console.error('Records manager elements not found');
+    return;
+  }
+  
+  // モーダルを開く
+  openBtn.addEventListener('click', () => {
+    renderRecordsList();
+    modal.style.display = 'block';
+  });
+  
+  // モーダルを閉じる
+  closeBtn.addEventListener('click', () => {
+    modal.style.display = 'none';
+  });
+  
+  // 新規記録
+  newRecordBtn.addEventListener('click', () => {
+    if (!state.cc && !state.hpi && state.vitals.length === 0) {
+      // 空の状態なら確認なしで新規作成
+      newRecord();
+    } else {
+      if (confirm('現在の記録は自動保存されています。\n新しい記録を開始しますか？')) {
+        newRecord();
+      }
+    }
+    modal.style.display = 'none';
+  });
+}
+
+function renderRecordsList() {
+  const list = $('#recordsList');
+  if (!list) return;
+  
+  const records = getRecordsList();
+  
+  if (records.length === 0) {
+    list.innerHTML = '<p style="text-align:center;color:#9ca3af;font-size:13px;padding:20px">保存された記録はありません</p>';
+    return;
+  }
+  
+  list.innerHTML = '';
+  
+  records.forEach(record => {
+    const recordDiv = document.createElement('div');
+    const isCurrentRecord = record.id === currentRecordId;
+    
+    recordDiv.style.cssText = `
+      background: ${isCurrentRecord ? '#dbeafe' : '#f9fafb'};
+      border: 1px solid ${isCurrentRecord ? '#3b82f6' : '#e5e7eb'};
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: all 0.15s;
+    `;
+    
+    const date = new Date(record.lastUpdated);
+    const dateStr = `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
+    
+    recordDiv.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:start">
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:600;font-size:14px;color:#111827;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+            ${isCurrentRecord ? '📝 ' : ''}${record.title}
+          </div>
+          <div style="font-size:12px;color:#6b7280">
+            ${dateStr}
+          </div>
+        </div>
+        <button onclick="deleteRecord('${record.id}'); event.stopPropagation();" style="background:#fee2e2;color:#dc2626;border:none;border-radius:4px;padding:4px 8px;font-size:11px;margin-left:8px;flex-shrink:0">削除</button>
+      </div>
+    `;
+    
+    if (!isCurrentRecord) {
+      recordDiv.addEventListener('click', () => {
+        if (confirm('この記録を読み込みますか？\n現在の記録は自動保存されています。')) {
+          load(record.id);
+          location.reload();
+        }
+      });
+      
+      recordDiv.addEventListener('mouseenter', () => {
+        recordDiv.style.background = '#f3f4f6';
+      });
+      
+      recordDiv.addEventListener('mouseleave', () => {
+        recordDiv.style.background = '#f9fafb';
+      });
+    }
+    
+    list.appendChild(recordDiv);
+  });
+}
+
 function init() {
+  migrateFromOldVersion(); // 旧バージョンからの移行
   load();
+  initRecordsManager(); // 記録管理の初期化
   bindInputs();
   initVitals();
   initVitalImageReader();
