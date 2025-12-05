@@ -1010,7 +1010,7 @@ const state = {
 };
 
 const NORMALS = {
-  cbc: { WBC: '7000', RBC: '4.5', Hb: '14.0', Ht: '42', Plt: '20', MCV: '90', MCH: '30', MCHC: '33' },
+  cbc: { WBC: '7000', RBC: '4.5', Hb: '14.0', Ht: '42', Plt: '200', MCV: '90', MCH: '30', MCHC: '33' },
   chem: { Na: '140', K: '4.0', Cl: '103', BUN: '15', Cr: '0.8', eGFR: '80', AST: '20', ALT: '20', ALP: '200', 'γ-GTP': '30', 'T-bil': '0.8', 'D-bil': '0.2', TP: '7.0', Alb: '4.2', Glu: '100', CRP: '0.1', LDH: '200', CK: '100', Amy: '80', Lip: '30', UA: '5.0', Ca: '9.0', IP: '3.5', Mg: '2.0', Fe: '100', TIBC: '300', Ferritin: '100' },
   coag: { 'PT-INR': '1.0', 'PT%': '100', APTT: '30', 'D-dimer': '0.5', FDP: '5', Fib: '300', AT3: '100' },
   sugar: { HbA1c: '5.6', BNP: '20', 'NT-proBNP': '100' },
@@ -1024,7 +1024,7 @@ const NORMALS = {
 };
 
 const LABS = {
-  cbc: { name: '血算', items: [['WBC', '/μL'], ['RBC', '×10^6'], ['Hb', 'g/dL'], ['Ht', '%'], ['Plt', '×10^4'], ['MCV', 'fL'], ['MCH', 'pg'], ['MCHC', '%']] },
+  cbc: { name: '血算', items: [['WBC', '/μL'], ['RBC', '×10^6/μL'], ['Hb', 'g/dL'], ['Ht', '%'], ['Plt', '×10^3/μL'], ['MCV', 'fL'], ['MCH', 'pg'], ['MCHC', '%']] },
   chem: { name: '生化学', items: [['CRP', 'mg/dL'], ['TP', 'g/dL'], ['Alb', 'g/dL'], ['AST', 'U/L'], ['ALT', 'U/L'], ['ALP', 'U/L'], ['γ-GTP', 'U/L'], ['T-bil', 'mg/dL'], ['D-bil', 'mg/dL'], ['LDH', 'U/L'], ['BUN', 'mg/dL'], ['Cr', 'mg/dL'], ['eGFR', 'mL/min'], ['Na', 'mEq/L'], ['K', 'mEq/L'], ['Cl', 'mEq/L'], ['Glu', 'mg/dL'], ['CK', 'U/L'], ['Amy', 'U/L'], ['Lip', 'U/L'], ['UA', 'mg/dL'], ['Ca', 'mg/dL'], ['IP', 'mg/dL'], ['Mg', 'mg/dL'], ['Fe', 'μg/dL'], ['TIBC', 'μg/dL'], ['Ferritin', 'ng/mL']] },
   coag: { name: '凝固', items: [['PT-INR', ''], ['PT%', '%'], ['APTT', 'sec'], ['D-dimer', 'μg/mL'], ['FDP', 'μg/mL'], ['Fib', 'mg/dL'], ['AT3', '%']] },
   sugar: { name: '血糖・心不全', items: [['HbA1c', '%'], ['BNP', 'pg/mL'], ['NT-proBNP', 'pg/mL']] },
@@ -2305,7 +2305,8 @@ function initGeminiAPI() {
 
 ■ 血液検査（血算）※最重要
 - WBC（白血球数）、RBC（赤血球数）、Hb（ヘモグロビン）、Ht（ヘマトクリット）、Plt（血小板）
-- 単位：/μL、×10⁴/μL、g/dL、% など
+- 単位：WBCは/μL、RBCは×10⁶/μL、Hbはg/dL、Htは%、Pltは×10³/μL
+- 血小板は3桁の数値で表示されます（例：200で20万個/μL）
 
 ■ 血液検査（生化学）
 - 電解質：Na、K、Cl
