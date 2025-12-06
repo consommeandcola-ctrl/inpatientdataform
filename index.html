@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="外来ワンページ">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
-<title>外来ワンページ iPhone版 v2.4-optimized</title>
+<title>外来ワンページ iPhone版 v2.4</title>
 <style>
 :root {
   --ink: #111827;
@@ -494,11 +494,11 @@ select {
 <header>
   <div>
     <h1>外来ワンページ</h1>
-    <div class="version">iPhone版 v2.1.0</div>
+    <div class="version">iPhone版 v2.5</div>
   </div>
   <div style="display:flex;gap:8px">
-    <button class="btn btn-sm" id="btnRecords" style="background:rgba(255,255,255,0.2);color:#fff;border:1px solid rgba(255,255,255,0.5)">📂 記録</button>
-    <button class="btn btn-sm" id="btnReset" style="background:rgba(255,255,255,0.2);color:#fff;border:1px solid rgba(255,255,255,0.5)">🗑 初期化</button>
+    <button class="btn btn-sm" id="btnList" style="background:rgba(255,255,255,0.2);color:#fff;border:1px solid rgba(255,255,255,0.5)">📂 一覧</button>
+    <button class="btn btn-sm" id="btnNew" style="background:rgba(255,255,255,0.2);color:#fff;border:1px solid rgba(255,255,255,0.5)">📝 新規</button>
   </div>
 </header>
 
@@ -980,7 +980,7 @@ select {
   </div>
 </div>
 
-<div id="recordsModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:200;overflow-y:auto;-webkit-overflow-scrolling:touch">
+<div id="recordsModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:200;align-items:center;justify-content:center;overflow-y:auto;-webkit-overflow-scrolling:touch">
   <div style="min-height:100%;display:flex;align-items:center;justify-content:center;padding:20px;padding-top:calc(20px + env(safe-area-inset-top));padding-bottom:calc(20px + env(safe-area-inset-bottom));padding-left:calc(20px + env(safe-area-inset-left));padding-right:calc(20px + env(safe-area-inset-right))">
     <div style="background:#fff;border-radius:16px;padding:24px;max-width:500px;width:100%;box-shadow:0 20px 25px -5px rgba(0,0,0,0.1);max-height:80vh;overflow-y:auto">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
@@ -1273,6 +1273,10 @@ function newRecord() {
   });
   
   currentRecordId = null;
+  // レコード管理モーダルが開いていたら閉じる
+  const recordsModal = $('#recordsModal');
+  if (recordsModal) recordsModal.style.display = 'none';
+  // 画面をリロードして初期化
   location.reload();
 }
 
@@ -1451,7 +1455,8 @@ function renderVitals() {
     card.className = 'vital-card';
     card.style.cssText = 'border:1px solid var(--line);border-radius:10px;margin-bottom:10px;overflow:hidden;';
     
-    const gcsSum = v.gcs.v === 'T' ? `${v.gcs.e + v.gcs.m}T` : (v.gcs.e + (typeof v.gcs.v === 'string' ? Number(v.gcs.v) : v.gcs.v) + v.gcs.m);
+    const gcsVVal = typeof v.gcs.v === 'string' ? v.gcs.v : (v.gcs.v || 1);
+    const gcsSum = gcsVVal === 'T' ? `${v.gcs.e + v.gcs.m}T` : (v.gcs.e + (typeof v.gcs.v === 'string' ? Number(v.gcs.v) : v.gcs.v) + v.gcs.m);
     
     card.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:#f9fafb;border-bottom:1px solid var(--line);">
@@ -1502,17 +1507,21 @@ function renderVitals() {
     const fillSelect = (field, from, to, step = 1) => {
       const sel = card.querySelector(`select[data-field="${field}"]`);
       if (!sel) return;
+      // BP, HR, RR, SpO2は0を追加（CPA対応）
+      if (field === 'sbp' || field === 'dbp' || field === 'hr' || field === 'rr' || field === 'spo2') {
+        sel.appendChild(new Option('0', '0'));
+      }
       for (let i = from; i <= to; i += step) {
         const val = step < 1 ? i.toFixed(1) : String(i);
         sel.appendChild(new Option(val, val));
       }
     };
     
-    fillSelect('sbp', 0, 300);
-    fillSelect('dbp', 0, 200);
-    fillSelect('hr', 0, 250);
-    fillSelect('rr', 0, 60);
-    fillSelect('spo2', 0, 100);
+    fillSelect('sbp', 1, 300);
+    fillSelect('dbp', 1, 200);
+    fillSelect('hr', 1, 250);
+    fillSelect('rr', 1, 60);
+    fillSelect('spo2', 1, 100);
     fillSelect('bt', 30, 42, 0.1);
     
     const gcsE = card.querySelector('select[data-field="gcsE"]');
@@ -1644,9 +1653,9 @@ function initVitalImageReader() {
         
         // 読み取った項目を表示
         const readItems = [];
-        if (vitalReadData.hr) readItems.push('HR');
-        if (vitalReadData.sbp && vitalReadData.dbp) readItems.push('BP');
-        if (vitalReadData.spo2) readItems.push('SpO2');
+        if (vitalReadData.hr !== undefined) readItems.push('HR');
+        if (vitalReadData.sbp !== undefined && vitalReadData.dbp !== undefined) readItems.push('BP');
+        if (vitalReadData.spo2 !== undefined) readItems.push('SpO2');
         
         renderVitalReadResult();
         statusDiv.style.display = 'block';
@@ -1835,7 +1844,7 @@ function renderVitalReadResult() {
   const items = [];
   
   // HR（心拍数）
-  if (vitalReadData.hr) {
+  if (vitalReadData.hr !== undefined) {
     items.push(`
       <b>HR</b>
       <div style="display:flex;gap:4px;align-items:center;">
@@ -1846,24 +1855,24 @@ function renderVitalReadResult() {
   }
   
   // BP（血圧）
-  if (vitalReadData.sbp && vitalReadData.dbp) {
+  if (vitalReadData.sbp !== undefined && vitalReadData.dbp !== undefined) {
     items.push(`
       <b>BP</b>
       <div style="display:flex;gap:4px;align-items:center;">
-        <input type="number" id="editSbp" value="${vitalReadData.sbp}" style="width:70px;padding:4px 8px;border:1px solid var(--line);border-radius:6px;font-size:14px;" min="60" max="250">
+        <input type="number" id="editSbp" value="${vitalReadData.sbp}" style="width:70px;padding:4px 8px;border:1px solid var(--line);border-radius:6px;font-size:14px;" min="0" max="250">
         <span>/</span>
-        <input type="number" id="editDbp" value="${vitalReadData.dbp}" style="width:70px;padding:4px 8px;border:1px solid var(--line);border-radius:6px;font-size:14px;" min="30" max="150">
+        <input type="number" id="editDbp" value="${vitalReadData.dbp}" style="width:70px;padding:4px 8px;border:1px solid var(--line);border-radius:6px;font-size:14px;" min="0" max="150">
         <span class="unit">mmHg</span>
       </div>
     `);
   }
   
   // SpO2（酸素飽和度）
-  if (vitalReadData.spo2) {
+  if (vitalReadData.spo2 !== undefined) {
     items.push(`
       <b>SpO₂</b>
       <div style="display:flex;gap:4px;align-items:center;">
-        <input type="number" id="editSpo2" value="${vitalReadData.spo2}" style="width:70px;padding:4px 8px;border:1px solid var(--line);border-radius:6px;font-size:14px;" min="70" max="100">
+        <input type="number" id="editSpo2" value="${vitalReadData.spo2}" style="width:70px;padding:4px 8px;border:1px solid var(--line);border-radius:6px;font-size:14px;" min="0" max="100">
         <span class="unit">%</span>
       </div>
     `);
@@ -1895,10 +1904,11 @@ function vitalText() {
   if (!state.vitals || state.vitals.length === 0) return '（未入力）';
   
   return state.vitals.map((v, idx) => {
-    const isCpaMode = state.examTab === 'cpa' || (v.sbp === 0 && v.hr === 0 && v.rr === 0);
+    // CPAモード判定は最初のバイタルのみで実施し、以降のバイタルはCPA初期値設定の影響を受けていれば同様に処理する
+    const isCpaMode = state.examTab === 'cpa' && idx === 0 || (v.sbp === 0 && v.hr === 0 && v.rr === 0 && v.spo2 === 0);
     const g = v.gcs;
     const gcsVVal = typeof g.v === 'string' ? g.v : (g.v || 1);
-    const gcsSum = g.v === 'T' ? `${g.e + g.m}T` : (g.e + (typeof g.v === 'string' ? Number(g.v) : g.v) + g.m);
+    const gcsSum = gcsVVal === 'T' ? `${g.e + g.m}T` : (g.e + (typeof g.v === 'string' ? Number(g.v) : v.gcs.v) + g.m);
     const gTxt = gcsVVal === 'T' ? `E${g.e}VTM${g.m}` : `E${g.e}V${gcsVVal}M${g.m}(${gcsSum})`;
     const timeStr = v.time ? `${v.time} ` : '';
     
@@ -2416,9 +2426,9 @@ function initGeminiAPI() {
     
     try {
       console.log('Resizing and compressing image...');
-      // 画像をリサイズ・圧縮してBase64に変換（クォータ削減のため）
+      // 画像をリサイズ・圧縮（クォータ削減のため）
       const base64 = await resizeAndCompressImage(file, 1200, 0.7);
-      const base64Data = base64.split(',')[1]; // data:image/jpeg;base64, を除去
+      const base64Data = base64.split(',')[1];
       console.log('Image optimization complete, compressed length:', base64Data.length);
       
       pasteStatus.textContent = '📷 画像を解析中...';
@@ -2458,14 +2468,8 @@ function initGeminiAPI() {
     } catch (err) {
       console.error('Error during image processing:', err);
       pasteStatus.style.display = 'block';
-      
-      // クォータエラーの検出
-      if (err.message && (err.message.includes('quota') || err.message.includes('RESOURCE_EXHAUSTED'))) {
-        pasteStatus.textContent = '❌ APIクォータ上限に達しました。しばらく待ってから再試行してください。';
-      } else {
-        pasteStatus.textContent = '❌ エラー: ' + (err.message || '不明なエラー');
-      }
-      pasteStatus.style.color = '#ef4444';
+      pasteStatus.textContent = '❌ エラー: ' + (err.message || '不明なエラー');
+      statusDiv.style.color = '#ef4444';
     } finally {
       imageInput.value = '';
     }
@@ -2492,7 +2496,6 @@ function initGeminiAPI() {
           let width = img.width;
           let height = img.height;
           
-          // 最大幅を超える場合はリサイズ
           if (width > maxWidth) {
             height = (height * maxWidth) / width;
             width = maxWidth;
@@ -2504,7 +2507,6 @@ function initGeminiAPI() {
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, width, height);
           
-          // JPEG形式で圧縮（quality: 0.7 = 70%品質）
           const compressedBase64 = canvas.toDataURL('image/jpeg', quality);
           resolve(compressedBase64);
         };
@@ -2586,7 +2588,7 @@ function initGeminiAPI() {
 【出力形式】
 {"items":[{"key":"WBC","value":7500,"unit":"/μL"},{"key":"Hb","value":13.5,"unit":"g/dL"}]}
 
-※バイタルサイン、患者情報、日時は除外`;
+※バイタルサイン、患者情報、日時は除外`;  // プロンプト短縮（クォータ削減）
 
 
     
@@ -2726,13 +2728,7 @@ function initGeminiAPI() {
       } catch (err) {
         console.error('Error during re-reading:', err);
         pasteStatus.style.display = 'block';
-        
-        // クォータエラーの検出
-        if (err.message && (err.message.includes('quota') || err.message.includes('RESOURCE_EXHAUSTED'))) {
-          pasteStatus.textContent = '❌ APIクォータ上限に達しました。しばらく待ってから再試行してください。';
-        } else {
-          pasteStatus.textContent = '❌ エラー: ' + (err.message || '不明なエラー');
-        }
+        pasteStatus.textContent = '❌ エラー: ' + (err.message || '不明なエラー');
         pasteStatus.style.color = '#ef4444';
       }
     });
@@ -3310,8 +3306,8 @@ function renderPhyText() {
       <textarea rows="3" id="phyOtherTxt" placeholder="所見を記載"></textarea>
     `;
     area.appendChild(otherRow);
-    $('#phyOtherName').value = state.phys.other.name || '';
-    $('#phyOtherTxt').value = state.phys.other.txt || '';
+    $('#imgOtherName').value = state.imaging.other.name || '';
+    $('#imgOtherTxt').value = state.imaging.other.txt || '';
     $('#phyOtherName').addEventListener('input', () => { state.phys.other.name = $('#phyOtherName').value; save(); });
     $('#phyOtherTxt').addEventListener('input', () => { state.phys.other.txt = $('#phyOtherTxt').value; save(); });
   }
@@ -3337,8 +3333,9 @@ function initProblems() {
   
   $('#courseText').value = state.courseText || '';
   $('#planText').value = state.planText || '';
-  $('#courseText').addEventListener('input', () => { state.courseText = $('#courseText').value; save(); });
-  $('#planText').addEventListener('input', () => { state.planText = $('#planText').value; save(); });
+  // ⬇️ 修正箇所: this.value を使用して構文エラーを解消
+  $('#courseText').addEventListener('input', function() { state.courseText = this.value; save(); });
+  $('#planText').addEventListener('input', function() { state.planText = this.value; save(); });
 }
 
 function renderProblems() {
@@ -3420,9 +3417,10 @@ function examText() {
     const cnFindings = STR_CNs.map(lbl => fmtFinding(lbl, state.chips[lbl])).filter(Boolean);
     if (cnFindings.length || state.memos.stroke.cn) { lines.push(`【脳神経】${[cnFindings.join('、'), state.memos.stroke.cn].filter(Boolean).join('。')}`); }
     const eyeParts = [];
-    if (state.stroke.pupill || state.stroke.pupilr) eyeParts.push(`瞳孔 L${state.stroke.pupill || '-'}/R${state.stroke.pupilr || '-'}mm`);
+    if (state.stroke.pupilL || state.stroke.pupilR) eyeParts.push(`瞳孔 L${state.stroke.pupilL || '-'}/R${state.stroke.pupilR || '-'}mm`);
     if (state.stroke.plrL || state.stroke.plrR) eyeParts.push(`対光 L:${state.stroke.plrL || '-'}/R:${state.stroke.plrR || '-'}`);
     if (state.stroke.gaze && state.stroke.gaze !== 'なし') eyeParts.push(`偏視 ${state.stroke.gaze}`);
+    if (state.stroke.nyst && state.stroke.nyst !== 'なし') eyeParts.push(`眼振 ${state.stroke.nyst}`);
     if (eyeParts.length || state.memos.stroke.eye) { lines.push(`【瞳孔・眼】${[eyeParts.join('、'), state.memos.stroke.eye].filter(Boolean).join('。')}`); }
     const m = state.stroke.mmt;
     if (m.ru || m.rl || m.lu || m.ll) {
@@ -3642,15 +3640,7 @@ $('#copyOut').addEventListener('click', () => {
 
 $('#printOut').addEventListener('click', () => window.print());
 
-$('#btnReset').addEventListener('click', () => {
-  if (confirm('現在の記録を初期化しますか？\nこの操作は取り消せません。')) {
-    if (currentRecordId) {
-      deleteRecord(currentRecordId);
-    } else {
-      newRecord();
-    }
-  }
-});
+// 一覧ボタンと新規ボタンのイベントリスナーはinit()関数で追加されます
 
 $('#btnResetMain').addEventListener('click', () => {
   if (confirm('現在の記録を初期化しますか？\nこの操作は取り消せません。')) {
@@ -3955,6 +3945,8 @@ function renderCpaEvents() {
     card.style.cssText = 'border:1px solid var(--line);border-radius:10px;margin-bottom:12px;overflow:hidden;background:#fff';
     
     const isFirst = idx === 0;
+    // event.rhythm が null/undefined の場合に 'Asystole' を表示（状態は変更しない）
+    const displayRhythm = event.rhythm || 'Asystole'; 
     
     card.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:#f9fafb;border-bottom:1px solid var(--line);">
@@ -3974,7 +3966,7 @@ function renderCpaEvents() {
           <div>
             <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px;">初期波形</label>
             <div onclick="openCpaRhythmDialog(${idx})" style="border:1px solid var(--line);border-radius:6px;padding:8px;text-align:center;cursor:pointer;background:#fafafa;">
-              <div style="font-size:14px;font-weight:500;">${event.rhythm}</div>
+              <div style="font-size:14px;font-weight:500;">${displayRhythm}</div>
             </div>
           </div>
         </div>
@@ -4026,17 +4018,19 @@ function renderCpaEvents() {
           </div>
         </div>` : ''}
         ` : `
-        <div style="margin-bottom:12px;">
-          <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px;">心停止時刻</label>
-          <div style="display:flex;gap:6px;">
-            <input type="time" value="${event.arrestTime}" onchange="updateCpaEventField(${idx}, 'arrestTime', this.value)" style="flex:1;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:14px;">
-            <button onclick="setCpaEventNow(${idx}, 'arrestTime')" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:8px 12px;font-size:12px;white-space:nowrap;">Now</button>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+          <div>
+            <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px;">心停止時刻</label>
+            <div style="display:flex;gap:6px;">
+              <input type="time" value="${event.arrestTime}" onchange="updateCpaEventField(${idx}, 'arrestTime', this.value)" style="flex:1;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:14px;">
+              <button onclick="setCpaEventNow(${idx}, 'arrestTime')" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:8px 12px;font-size:12px;white-space:nowrap;">Now</button>
+            </div>
           </div>
-        </div>
-        <div style="margin-bottom:12px;">
-          <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px;">波形</label>
-          <div onclick="openCpaRhythmDialog(${idx})" style="border:1px solid var(--line);border-radius:6px;padding:8px;text-align:center;cursor:pointer;background:#fafafa;">
-            <div style="font-size:14px;font-weight:500;">${event.rhythm}</div>
+          <div>
+            <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px;">波形</label>
+            <div onclick="openCpaRhythmDialog(${idx})" style="border:1px solid var(--line);border-radius:6px;padding:8px;text-align:center;cursor:pointer;background:#fafafa;">
+              <div style="font-size:14px;font-weight:500;">${displayRhythm}</div>
+            </div>
           </div>
         </div>
         `}
@@ -4177,37 +4171,25 @@ function setCpaVitalDefaults() {
 // 記録管理の初期化
 function initRecordsManager() {
   const modal = $('#recordsModal');
-  const openBtn = $('#btnRecords');
   const closeBtn = $('#recordsModalClose');
   const newRecordBtn = $('#newRecordBtn');
   
-  if (!modal || !openBtn || !closeBtn || !newRecordBtn) {
+  if (!modal || !closeBtn || !newRecordBtn) {
     console.error('Records manager elements not found');
     return;
   }
-  
-  // モーダルを開く
-  openBtn.addEventListener('click', () => {
-    renderRecordsList();
-    modal.style.display = 'block';
-  });
   
   // モーダルを閉じる
   closeBtn.addEventListener('click', () => {
     modal.style.display = 'none';
   });
   
-  // 新規記録
+  // モーダル内の新規記録ボタン
   newRecordBtn.addEventListener('click', () => {
-    if (!state.cc && !state.hpi && state.vitals.length === 0) {
-      // 空の状態なら確認なしで新規作成
-      newRecord();
-    } else {
-      if (confirm('現在の記録は自動保存されています。\n新しい記録を開始しますか？')) {
-        newRecord();
-      }
-    }
     modal.style.display = 'none';
+    if (confirm('新しい記録を開始しますか？\n現在の記録は自動保存されています。')) {
+      newRecord();
+    }
   });
 }
 
@@ -4298,6 +4280,19 @@ function init() {
   $$('.chip').forEach(el => { const st = state.chips[el.textContent]; if (st) el.dataset.state = st; });
   switchExamTab(state.examTab || 'general');
   
+  // 一覧ボタンのイベントリスナー
+  $('#btnList').addEventListener('click', () => {
+    renderRecordsList();
+    $('#recordsModal').style.display = 'flex';
+  });
+
+  // 新規ボタンのイベントリスナー
+  $('#btnNew').addEventListener('click', () => {
+    if (confirm('新しい記録を開始しますか？\n現在の記録は自動保存されています。')) {
+      newRecord();
+    }
+  });
+
   // スワイプジェスチャーを初期化
   initSwipeGesture();
 }
