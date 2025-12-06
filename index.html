@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="外来ワンページ">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
-<title>外来ワンページ iPhone版 v2.4</title>
+<title>外来ワンページ iPhone版 v2.4-optimized</title>
 <style>
 :root {
   --ink: #111827;
@@ -2411,16 +2411,17 @@ function initGeminiAPI() {
     }
     
     pasteStatus.style.display = 'block';
-    pasteStatus.textContent = '📷 画像を解析中...';
+    pasteStatus.textContent = '📷 画像を最適化中...';
     pasteStatus.style.color = '#2563eb';
     
     try {
-      console.log('Converting file to base64...');
-      // 画像をBase64に変換
-      const base64 = await fileToBase64(file);
+      console.log('Resizing and compressing image...');
+      // 画像をリサイズ・圧縮してBase64に変換（クォータ削減のため）
+      const base64 = await resizeAndCompressImage(file, 1200, 0.7);
       const base64Data = base64.split(',')[1]; // data:image/jpeg;base64, を除去
-      console.log('Base64 conversion complete, length:', base64Data.length);
+      console.log('Image optimization complete, compressed length:', base64Data.length);
       
+      pasteStatus.textContent = '📷 画像を解析中...';
       console.log('Calling Gemini API...');
       // Gemini API 呼び出し
       const result = await callGeminiAPI(apiKey, base64Data);
@@ -2457,7 +2458,13 @@ function initGeminiAPI() {
     } catch (err) {
       console.error('Error during image processing:', err);
       pasteStatus.style.display = 'block';
-      pasteStatus.textContent = '❌ エラー: ' + (err.message || '不明なエラー');
+      
+      // クォータエラーの検出
+      if (err.message && (err.message.includes('quota') || err.message.includes('RESOURCE_EXHAUSTED'))) {
+        pasteStatus.textContent = '❌ APIクォータ上限に達しました。しばらく待ってから再試行してください。';
+      } else {
+        pasteStatus.textContent = '❌ エラー: ' + (err.message || '不明なエラー');
+      }
       pasteStatus.style.color = '#ef4444';
     } finally {
       imageInput.value = '';
@@ -2469,6 +2476,41 @@ function initGeminiAPI() {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+  
+  // 画像リサイズ・圧縮関数（クォータ削減のため）
+  async function resizeAndCompressImage(file, maxWidth, quality) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          
+          // 最大幅を超える場合はリサイズ
+          if (width > maxWidth) {
+            height = (height * maxWidth) / width;
+            width = maxWidth;
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // JPEG形式で圧縮（quality: 0.7 = 70%品質）
+          const compressedBase64 = canvas.toDataURL('image/jpeg', quality);
+          resolve(compressedBase64);
+        };
+        img.onerror = reject;
+        img.src = e.target.result;
+      };
       reader.onerror = reject;
       reader.readAsDataURL(file);
     });
@@ -2532,64 +2574,19 @@ function initGeminiAPI() {
     
     const normalizeLabel = (k) => LABEL_MAP[String(k || '').replace(/\s+/g, '').replace(/[（(].*?[)）]/g, '')] || String(k || '').trim();
     
-    const prompt = `医療検査票の画像から検査値を抽出してください。
-
-【重要】画像全体を見て、各検査項目がどのセクション（血液検査、尿検査など）に記載されているかを判断してください。
-
-【検査の種類と項目】
-
-■ 血液検査（血算）※最重要
-- WBC（白血球数）、RBC（赤血球数）、Hb（ヘモグロビン）、Ht（ヘマトクリット）、Plt（血小板）
-- 単位：WBCは/μL、RBCは×10⁶/μL、Hbはg/dL、Htは%、Pltは×10³/μL
-- 血小板は3桁の数値で表示されます（例：200で20万個/μL）
-
-■ 血液検査（生化学）
-- 電解質：Na、K、Cl
-- 腎機能：BUN、Cr、eGFR
-- 肝機能：AST、ALT、ALP、γ-GTP、T-bil、D-bil、TP、Alb、LDH
-- その他：CK、Amy、Lip、Glu、CRP、UA など
-- 単位：mEq/L、mg/dL、U/L、IU/L など
-
-■ 血液検査（凝固）
-- PT-INR、APTT、D-dimer、Fib など
-
-■ 尿検査（尿定性）
-- pH、比重、蛋白、糖、潜血、ケトン体 など
-- ※重要：尿検査セクションに「WBC」「RBC」が書いてある場合は、「尿中白血球」「尿中赤血球」として区別してください
-
-■ 尿検査（尿沈渣）
-- 「尿沈渣」または「尿中」のセクションに記載
-- RBC、WBC、上皮、円柱、細菌 など
-- 単位：/HPF（高倍率視野あたり）
-
-■ 髄液検査（特殊検査）
-- 髄液検査のセクションがある場合のみ
-- 髄液Cl、髄液糖、髄液蛋白、髄液細胞数 など
-- ※血清Clと髄液Clは異なります
+    const prompt = `医療検査票の画像から検査値を抽出してJSON形式で出力してください。
 
 【抽出ルール】
-1. 項目名は英語略号を使用（WBC、RBC、Na、Cr など）
-2. 同じ略号でも検査種別が異なる場合があります：
-   - 血液検査のWBC/RBC → 「WBC」「RBC」
-   - 尿検査のWBC/RBC → スキップ
-   - 血清Cl → 「Cl」
-   - 髄液Cl → 「髄液Cl」（明記）
-3. 数値のみ抽出（記号は除去）
-4. 単位を正確に記載
-5. 判読不能な値はスキップ
+1. 血算: WBC,RBC,Hb,Ht,Plt,MCV,MCH,MCHC
+2. 生化学: TP,Alb,T-bil,D-bil,AST,ALT,ALP,γ-GTP,LDH,CK,BUN,Cr,eGFR,Na,K,Cl,Ca,IP,Mg,UA,Glu,CRP,Amy,Lip,Fe
+3. 凝固: PT-INR,APTT,D-dimer,Fib
+4. その他: HbA1c,BNP,pH,pCO2,pO2,HCO3-,BE,Lac
+5. 項目名は英語略号、数値のみ抽出、単位を記載
 
-【出力JSON形式】
-{
-  "items": [
-    {"key": "WBC", "value": 7500, "unit": "/μL"},
-    {"key": "RBC", "value": 450, "unit": "×10⁴/μL"},
-    {"key": "Hb", "value": 13.5, "unit": "g/dL"},
-    {"key": "Na", "value": 140, "unit": "mEq/L"},
-    {"key": "Cr", "value": 0.8, "unit": "mg/dL"}
-  ]
-}
+【出力形式】
+{"items":[{"key":"WBC","value":7500,"unit":"/μL"},{"key":"Hb","value":13.5,"unit":"g/dL"}]}
 
-※バイタルサイン（血圧、体温、脈拍）、患者情報、検査日時は除外してください。`;
+※バイタルサイン、患者情報、日時は除外`;
 
 
     
@@ -2729,7 +2726,13 @@ function initGeminiAPI() {
       } catch (err) {
         console.error('Error during re-reading:', err);
         pasteStatus.style.display = 'block';
-        pasteStatus.textContent = '❌ エラー: ' + (err.message || '不明なエラー');
+        
+        // クォータエラーの検出
+        if (err.message && (err.message.includes('quota') || err.message.includes('RESOURCE_EXHAUSTED'))) {
+          pasteStatus.textContent = '❌ APIクォータ上限に達しました。しばらく待ってから再試行してください。';
+        } else {
+          pasteStatus.textContent = '❌ エラー: ' + (err.message || '不明なエラー');
+        }
         pasteStatus.style.color = '#ef4444';
       }
     });
